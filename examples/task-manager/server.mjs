@@ -2,7 +2,7 @@
 
 /**
  * Task Manager MCP server.
- * Family to-do list for Alex's household.
+ * Family to-do list for a household with members Alex, Sam, Mia, and Leo.
  *
  * Read:  list_tasks, get_task, search_tasks, get_stats
  * Write: create_task, update_task, delete_task
@@ -66,7 +66,7 @@ const server = new McpServer({
   name: 'task-manager',
   version: '0.1.0',
 }, {
-  instructions: `A family task manager for Alex's household. Manage to-do items for the whole family.
+  instructions: `A family task manager for a household with members Alex, Sam, Mia, and Leo. Manage to-do items for the whole family.
 
 Key conventions:
 - Statuses: "todo", "in_progress", "completed" (aliases like "pending", "done" are accepted but always normalized internally). These are the ONLY statuses — there are no "blocked", "waiting", or "on_hold" statuses.
@@ -75,24 +75,26 @@ Key conventions:
 - Tags: home, health, finance, errands, kids, garden, family, car, school.
 
 Critical rules:
-1. **GROUND ANSWERS IN TOOL DATA ONLY.** Never include task names, dates, or details that don't appear in tool results. If a tool returns an empty array or zero results, say "no matching tasks found" — do NOT guess, fabricate, or extrapolate tasks that might exist. This applies even when the user expects a certain answer (e.g. "fun stuff coming up" → if no fun tasks exist, say so honestly). If results are truncated, make additional calls (with offset) to get the remaining data before answering.
-2. **"All active tasks" → use excludeStatus="completed".** When asked for everything someone is working on, what's on their plate, or tasks that aren't done, use excludeStatus="completed" to get all non-completed tasks regardless of specific status.
-3. **OVERDUE queries → overdue=true.** To find overdue tasks, use list_tasks with overdue=true. NEVER use dueBefore — it returns tasks of ALL statuses including completed.
-4. **Tag filtering → list_tasks(tag=...), NOT search_tasks.** Known tags are: home, health, finance, errands, kids, garden, family, car, school. If the user asks about any of these, use list_tasks with the tag filter — do NOT call search_tasks. search_tasks is ONLY for freeform keyword lookups when you don't know which field to filter by (e.g. "cooking", "birthday", or other words that aren't known tags/assignees/statuses).
-5. **search_tasks is substring-based.** "cook" matches "cooking", "meal" matches "meals". Start with a broad root word. If few/no results, try synonyms — e.g. "cook" then "meal" then "food".
-6. **Batch updates → update ALL matching items.** When asked to update "all tasks that match X", first list ALL matches, then update_task once for EACH. The task is NOT done until the write calls are made.
-7. **Ties → acknowledge and explain.** When asked for "the highest priority" and multiple tasks tie, say so.
-8. **ACTION REQUESTS require thorough search before giving up.** When asked to update/move/delete tasks and your first query returns 0 results, you MUST broaden the search before concluding no tasks exist:
+1. **NEVER assume the user's identity.** When the user says "me", "my tasks", "assign to me", or "I", do NOT assume they are Alex or any other family member. Ask the user to clarify who they are first (e.g. "Which family member are you — Alex, Sam, Mia, or Leo?"). The household has multiple members and the system does not track who is currently speaking.
+2. **GROUND ANSWERS IN TOOL DATA ONLY.** Never include task names, dates, or details that don't appear in tool results. If a tool returns an empty array or zero results, say "no matching tasks found" — do NOT guess, fabricate, or extrapolate tasks that might exist. This applies even when the user expects a certain answer (e.g. "fun stuff coming up" → if no fun tasks exist, say so honestly). If results are truncated, make additional calls (with offset) to get the remaining data before answering.
+3. **"All active tasks" → use excludeStatus="completed".** When asked for everything someone is working on, what's on their plate, or tasks that aren't done, use excludeStatus="completed" to get all non-completed tasks regardless of specific status.
+4. **OVERDUE queries → overdue=true.** To find overdue tasks, use list_tasks with overdue=true. NEVER use dueBefore — it returns tasks of ALL statuses including completed.
+5. **Tag filtering → list_tasks(tag=...), NOT search_tasks.** Known tags are: home, health, finance, errands, kids, garden, family, car, school. If the user asks about any of these, use list_tasks with the tag filter — do NOT call search_tasks. search_tasks is ONLY for freeform keyword lookups when you don't know which field to filter by (e.g. "cooking", "birthday", or other words that aren't known tags/assignees/statuses).
+6. **search_tasks is substring-based.** "cook" matches "cooking", "meal" matches "meals". Start with a broad root word. If few/no results, try synonyms — e.g. "cook" then "meal" then "food".
+7. **Batch updates → update ALL matching items.** When asked to update "all tasks that match X", first list ALL matches, then update_task once for EACH. The task is NOT done until the write calls are made.
+8. **Ties → acknowledge and explain.** When asked for "the highest priority" and multiple tasks tie, say so.
+9. **ACTION REQUESTS require thorough search before giving up.** When asked to update/move/delete tasks and your first query returns 0 results, you MUST broaden the search before concluding no tasks exist:
    - Drop the assignee filter (tasks "about" Mia may be assigned to Alex)
    - Drop the tag filter (school tasks might not be tagged "school")
    - Try search_tasks with the person's name or keyword
    - Check the "hint" field in list_tasks responses — it flags tasks that mention the person by name
    Only after 2-3 search strategies return nothing can you report "no matching tasks found". A single narrow query returning 0 is NOT sufficient for action requests.
-9. **Filters can be combined** in a single list_tasks call (e.g. assignee + excludeStatus + tag).
-10. **Use get_stats for counting/comparison questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "task distribution". It returns byStatus, overdue count, completionRate, and topAssignees without listing individual tasks. Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
-11. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
-12. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?").
-13. **"Can we…", "Let's…", "I want to…" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead.`,
+10. **Filters can be combined** in a single list_tasks call (e.g. assignee + excludeStatus + tag).
+11. **Use get_stats for counting/comparison questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "task distribution". It returns byStatus, overdue count, completionRate, and topAssignees without listing individual tasks. Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
+12. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
+13. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?").
+14. **"Can we…", "Let's…", "I want to…" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead.
+15. **"Unassigned tasks" → use list_tasks(unassigned=true).** To find tasks with no assignee, use the unassigned=true filter. Do NOT try to pass null or empty string to the assignee parameter.`,
 });
 
 // --- Read Tools ---
@@ -104,6 +106,7 @@ server.tool(
 Tips:
 • Use excludeStatus="completed" for "all active/current/not-done tasks".
 • Use overdue=true for overdue tasks (not dueBefore, which includes completed).
+• Use unassigned=true for tasks with NO assignee. Example: "unassigned urgent tasks" → list_tasks({unassigned: true, priority: 'urgent', excludeStatus: 'completed'}).
 • Use tag filter for known tags (garden, school, etc.) — more reliable than search_tasks.
 • For CATEGORY queries ("kids' school tasks", "garden stuff"), use the TAG filter — NOT the assignee filter. Tasks about kids/school/garden may be assigned to ANY family member. Example: "kids' school tasks" → list_tasks({tag: 'school', excludeStatus: 'completed'}) finds ALL school tasks regardless of who's assigned.
 
@@ -114,7 +117,8 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
     overdue: z.boolean().optional().describe('**Use this for overdue queries.** Set to true to return ONLY tasks that are past due AND not completed. This is the correct way to answer "what is overdue?" — do NOT use dueBefore for overdue queries.'),
     status: z.string().optional().describe('Filter by status: "todo", "in_progress", or "completed". Aliases accepted (e.g. "pending"→todo, "done"→completed).'),
     excludeStatus: z.string().optional().describe('Exclude a status. Use excludeStatus="completed" for all active/non-done tasks. Aliases accepted.'),
-    assignee: z.string().optional().describe('Filter by person assigned. Known assignees: Alex, Sam, Mia, Leo. Case-sensitive.'),
+    unassigned: z.boolean().optional().describe('Set to true to return ONLY tasks with no assignee. Cannot be combined with "assignee" — use one or the other.'),
+    assignee: z.string().optional().describe('Filter by person assigned. Known assignees: Alex, Sam, Mia, Leo. Case-sensitive. To find tasks with NO assignee, use unassigned=true instead.'),
     priority: z.string().optional().describe('Filter by priority: "low", "medium", "high", or "urgent". Single-value — for multiple priorities, make one call per priority.'),
     tag: z.string().optional().describe('Filter by tag: home, health, finance, errands, kids, garden, family, car, school. Case-sensitive.'),
     dueBefore: z.string().optional().describe('Due date upper bound (YYYY-MM-DD). WARNING: Returns tasks of ALL statuses including completed — NOT suitable for finding overdue tasks. Use "overdue=true" instead.'),
@@ -122,7 +126,7 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
     limit: z.number().optional().describe('Max results per page (default 50). Response includes "hasMore" boolean — if true, increase offset to get next page.'),
     offset: z.number().optional().describe('Skip N tasks for pagination (default 0). Use when "hasMore" is true in a previous response.'),
   },
-  async ({ status, excludeStatus, assignee, priority, tag, dueBefore, dueAfter, overdue, limit, offset }) => {
+  async ({ status, excludeStatus, assignee, unassigned, priority, tag, dueBefore, dueAfter, overdue, limit, offset }) => {
     let tasks = loadTasks();
     const normalizedStatus = normalizeStatus(status);
     const normalizedExcludeStatus = normalizeStatus(excludeStatus);
@@ -137,7 +141,9 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
     if (normalizedExcludeStatus !== undefined) {
       tasks = tasks.filter(t => t.status !== normalizedExcludeStatus);
     }
-    if (assignee !== undefined) {
+    if (unassigned === true) {
+      tasks = tasks.filter(t => !t.assignee);
+    } else if (assignee !== undefined) {
       tasks = tasks.filter(t => t.assignee === assignee);
     }
     if (priority !== undefined) {
@@ -473,7 +479,7 @@ Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "lo
     description: z.string().optional().describe('New description'),
     status: z.string().optional().describe('New status: "todo", "in_progress", or "completed" (aliases like "done", "pending" accepted)'),
     priority: z.string().optional().describe('New priority: "low", "medium", "high", or "urgent"'),
-    assignee: z.string().optional().describe('New assignee. Known: Alex, Sam, Mia, Leo.'),
+    assignee: z.string().optional().describe('New assignee. Known: Alex, Sam, Mia, Leo. ⚠️ If user says "assign to me" or "I\'ll take it", you MUST ask which family member they are first — do NOT assume.'),
     dueDate: z.string().optional().describe('New due date (YYYY-MM-DD)'),
     tags: z.array(z.string()).optional().describe('New tags (replaces all existing tags)'),
   },
