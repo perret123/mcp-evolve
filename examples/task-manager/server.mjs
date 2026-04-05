@@ -16,6 +16,9 @@ import { join } from 'node:path';
 
 const TASKS_PATH = join(new URL('.', import.meta.url).pathname, 'tasks.json');
 
+/** Priority ranking — higher number = higher priority. */
+const PRIORITY_RANK = { urgent: 4, high: 3, medium: 2, low: 1 };
+
 /**
  * Normalize status strings to canonical values used in the data store.
  * Canonical statuses: "todo", "in_progress", "completed".
@@ -66,35 +69,38 @@ const server = new McpServer({
   instructions: `A family task manager for Alex's household. Manage to-do items for the whole family.
 
 Key conventions:
-- Statuses: "todo", "in_progress", "completed" (aliases like "pending", "done" are accepted).
-- Priorities: "low", "medium", "high", "urgent".
+- Statuses: "todo", "in_progress", "completed" (aliases like "pending", "done" are accepted but always normalized internally).
+- Priorities (ranked low → urgent): "low" < "medium" < "high" < "urgent". list_tasks results are sorted highest priority first.
 - Assignees: Alex, Sam, Mia, Leo, or unassigned.
 - Tags: home, health, finance, errands, kids, garden, family, car, school.
 
-Important usage patterns:
-- To find OVERDUE tasks, use list_tasks with overdue=true. Do NOT use dueBefore for this — dueBefore returns tasks of all statuses including completed.
-- Combine filters in a single list_tasks call (e.g. assignee + status) rather than making multiple calls.
-- For quick overdue counts or status breakdowns, use get_stats instead of listing all tasks.
-- search_tasks only matches against task titles. Use list_tasks with filters for tag/assignee/status queries.
-- Always base your answer on the actual data returned by tools. If a tool returns an empty array, report that — do not infer or fabricate tasks.`,
+Critical rules:
+1. **GROUND ANSWERS IN TOOL DATA ONLY.** Never include task names, dates, or details that don't appear in tool results. If a tool returns an empty array or zero results, say so — do NOT guess or fabricate tasks. If results are truncated, make additional calls (with offset) to get the remaining data before answering.
+2. **OVERDUE queries → overdue=true.** To find overdue tasks, use list_tasks with overdue=true. NEVER use dueBefore — it returns tasks of ALL statuses including completed.
+3. **Tag/status/assignee filtering → list_tasks, NOT search_tasks.** For structured queries like "school-tagged tasks" or "Mia's tasks", use list_tasks with the appropriate filter (tag, assignee, status). search_tasks is only for freeform keyword searches when you don't know the exact field to filter by.
+4. **Batch updates → update ALL matching items.** When asked to update "all tasks that match X" or "any tasks that are Y", first list ALL matching tasks, then call update_task once for EACH matching task. Do not stop after updating just one.
+5. **Ties → acknowledge and explain.** When asked for "the highest priority" or "the most X" and multiple tasks tie, explicitly acknowledge the tie and explain your tiebreaker (e.g. most overdue, earliest due date).
+6. **Combine filters** in a single list_tasks call (e.g. assignee + status + tag) rather than making multiple calls.
+7. **Use get_stats** for quick overdue counts, status breakdowns, or completion rates instead of listing all tasks.`,
 });
 
 // --- Read Tools ---
 
 server.tool(
   'list_tasks',
-  'List tasks with optional filters. Filters can be combined in a single call (e.g. assignee + status). Returns paginated results (default limit=50); check "hasMore" in response to know if more pages exist. For "what is overdue?" questions, you MUST use overdue=true — do NOT use dueBefore (it includes completed tasks).',
+  'List tasks with optional filters. Filters can be combined in a single call (e.g. assignee + status + tag). Results are sorted by priority (urgent > high > medium > low), then by due date (earliest first). If multiple tasks share the same priority, they are ties — report all of them and explain the tie. Returns paginated results (default limit=50); check "hasMore" in response to know if more pages exist. For "what is overdue?" questions, you MUST use overdue=true — do NOT use dueBefore (it includes completed tasks). For tag-based queries (e.g. "school tasks"), use the tag filter here — this is more reliable than search_tasks for filtering by tag.',
   {
     overdue: z.boolean().optional().describe('**Use this for overdue queries.** Set to true to return ONLY tasks that are past due AND not completed. This is the correct way to answer "what is overdue?" — do NOT use dueBefore for overdue queries.'),
     status: z.string().optional().describe('Filter by status. Canonical values: "todo", "in_progress", "completed". Aliases accepted: "pending"→todo, "in-progress"→in_progress, "done"→completed.'),
     assignee: z.string().optional().describe('Filter by person assigned. Known assignees: Alex, Sam, Mia, Leo. Case-sensitive.'),
     priority: z.string().optional().describe('Filter by priority level: "low", "medium", "high", or "urgent".'),
+    tag: z.string().optional().describe('Filter by tag. Known tags: home, health, finance, errands, kids, garden, family, car, school. Returns only tasks that have this tag. Case-sensitive.'),
     dueBefore: z.string().optional().describe('Due date upper bound (YYYY-MM-DD). WARNING: Returns tasks of ALL statuses including completed — NOT suitable for finding overdue tasks. Use "overdue=true" instead.'),
     dueAfter: z.string().optional().describe('Due date lower bound (YYYY-MM-DD). Returns tasks of ALL statuses including completed.'),
     limit: z.number().optional().describe('Max results per page (default 50). Response includes "hasMore" boolean — if true, increase offset to get next page.'),
     offset: z.number().optional().describe('Skip N tasks for pagination (default 0). Use when "hasMore" is true in a previous response.'),
   },
-  async ({ status, assignee, priority, dueBefore, dueAfter, overdue, limit, offset }) => {
+  async ({ status, assignee, priority, tag, dueBefore, dueAfter, overdue, limit, offset }) => {
     let tasks = loadTasks();
     const normalizedStatus = normalizeStatus(status);
 
@@ -111,12 +117,27 @@ server.tool(
     if (priority !== undefined) {
       tasks = tasks.filter(t => t.priority === priority);
     }
+    if (tag !== undefined) {
+      tasks = tasks.filter(t => t.tags && t.tags.includes(tag));
+    }
     if (dueBefore !== undefined) {
       tasks = tasks.filter(t => t.dueDate && t.dueDate <= dueBefore);
     }
     if (dueAfter !== undefined) {
       tasks = tasks.filter(t => t.dueDate && t.dueDate >= dueAfter);
     }
+
+    // Sort by priority (urgent first) then by due date (earliest first) for deterministic ordering.
+    tasks.sort((a, b) => {
+      const pa = PRIORITY_RANK[a.priority] ?? 0;
+      const pb = PRIORITY_RANK[b.priority] ?? 0;
+      if (pb !== pa) return pb - pa;               // higher priority first
+      // secondary: earliest due date first (null dates sort last)
+      if (a.dueDate && b.dueDate) return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0;
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      return 0;
+    });
 
     const totalFiltered = tasks.length;
     const effectiveOffset = offset ?? 0;
@@ -161,9 +182,13 @@ server.tool(
 
 server.tool(
   'search_tasks',
-  'Search tasks by keyword in title, description, and tags. Returns matching task summaries. For filtering by status, assignee, priority, or date, use list_tasks instead.',
-  { query: z.string().describe('Search keyword (case-insensitive). Matches against task title, description, and tags.') },
-  async ({ query }) => {
+  'Freeform keyword search across task titles, descriptions, and tags. Returns paginated matching task summaries (default limit=50). Check "hasMore" in the response — if true, call again with a higher offset to get the next page. You MUST fetch ALL pages before acting on the results.\n\n⚠️ IMPORTANT: Do NOT use search_tasks for structured filtering. If you know the tag (e.g. "school"), assignee (e.g. "Mia"), status, or priority you want, use list_tasks with its filters instead — it is faster and more reliable. search_tasks is only for freeform keyword lookups when you don\'t know which field to filter by.',
+  {
+    query: z.string().describe('Search keyword (case-insensitive). Matches against task title, description, and tags.'),
+    limit: z.number().optional().describe('Max results per page (default 50). Response includes "hasMore" boolean — if true, increase offset to get next page.'),
+    offset: z.number().optional().describe('Skip N results for pagination (default 0). Use when "hasMore" is true in a previous response.'),
+  },
+  async ({ query, limit, offset }) => {
     const tasks = loadTasks();
     const q = query.toLowerCase();
     const matches = tasks.filter(t =>
@@ -172,7 +197,23 @@ server.tool(
       (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q)))
     );
 
-    const summaries = matches.map(t => ({
+    // Sort by priority (urgent first) then by due date (earliest first) for deterministic ordering.
+    matches.sort((a, b) => {
+      const pa = PRIORITY_RANK[a.priority] ?? 0;
+      const pb = PRIORITY_RANK[b.priority] ?? 0;
+      if (pb !== pa) return pb - pa;
+      if (a.dueDate && b.dueDate) return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0;
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      return 0;
+    });
+
+    const totalMatches = matches.length;
+    const effectiveOffset = offset ?? 0;
+    const effectiveLimit = limit ?? 50;
+    const page = matches.slice(effectiveOffset, effectiveOffset + effectiveLimit);
+
+    const summaries = page.map(t => ({
       id: t.id,
       title: t.title,
       status: t.status,
@@ -182,7 +223,15 @@ server.tool(
       tags: t.tags,
     }));
 
-    return { content: [{ type: 'text', text: JSON.stringify(summaries, null, 2) }] };
+    const result = {
+      tasks: summaries,
+      total: totalMatches,
+      offset: effectiveOffset,
+      limit: effectiveLimit,
+      hasMore: effectiveOffset + effectiveLimit < totalMatches,
+    };
+
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
   },
 );
 
@@ -300,13 +349,20 @@ server.tool(
     }
 
     const task = tasks[idx];
-    const fields = { title, description, status, priority, assignee, dueDate, tags };
+    const normStatus = status !== undefined ? normalizeStatus(status) : undefined;
+    const fields = { title, description, status: normStatus, priority, assignee, dueDate, tags };
 
-    // PLANTED BUG: generic field update loop — does NOT set completedAt when status → "completed"
     for (const [key, val] of Object.entries(fields)) {
       if (val !== undefined) {
         task[key] = val;
       }
+    }
+
+    // Set completedAt when marking as completed, clear it when moving away
+    if (normStatus === 'completed') {
+      task.completedAt = new Date().toISOString();
+    } else if (normStatus !== undefined && normStatus !== 'completed') {
+      task.completedAt = null;
     }
 
     tasks[idx] = task;
