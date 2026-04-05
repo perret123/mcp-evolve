@@ -173,6 +173,7 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
     const summaries = tasks.map(t => ({
       id: t.id,
       title: t.title,
+      description: t.description || null,
       status: t.status,
       priority: t.priority,
       assignee: t.assignee,
@@ -233,8 +234,49 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
           }
         } else if (otherAssigneeTasks.length > 0) {
           // Some results found, but MORE matching tasks exist under other assignees.
-          // Alert the LLM so it doesn't assume the assignee-filtered view is complete.
-          result.hint = `Showing ${totalFiltered} task(s) assigned to "${assignee}", but ${otherAssigneeTasks.length} additional task(s) match these filters under OTHER assignees: ${otherAssigneeTasks.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee || 'unassigned'})`).join(', ')}. ⚠️ The assignee filter may be too narrow — for a COMPLETE view of all matching tasks (e.g. all "school" tasks regardless of who's assigned), call list_tasks WITHOUT the assignee filter.`;
+          // Only mention tasks that actually reference the person by name in title/description —
+          // a random task under the same tag assigned to someone else is NOT necessarily "their" task.
+          const nameLower = assignee.toLowerCase();
+          const mentionTasks = otherAssigneeTasks.filter(t =>
+            t.title.toLowerCase().includes(nameLower) ||
+            (t.description && t.description.toLowerCase().includes(nameLower))
+          );
+          if (mentionTasks.length > 0) {
+            result.hint = `Showing ${totalFiltered} task(s) assigned to "${assignee}". FYI: ${mentionTasks.length} other task(s) mention "${assignee}" by name but are assigned to SOMEONE ELSE: ${mentionTasks.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee || 'unassigned'})`).join(', ')}. ⚠️ These are NOT "${assignee}'s" tasks — they belong to whoever they are assigned to. Only consider these if the user is asking about a CATEGORY (e.g. "all school tasks") rather than a specific person's task list/assignments.`;
+          }
+        }
+      } else {
+        // Assignee-only query (no other filters). Provide context about tasks that
+        // MENTION this person by name but are assigned to other family members, along
+        // with their tag distribution. This helps the LLM answer topic-specific
+        // questions like "Leo mentioned something about school" — Leo's directly
+        // assigned tasks may all be garden-related, but school tasks mentioning Leo
+        // exist under other assignees.
+        const allTasks = loadTasks();
+        const nameLower = assignee.toLowerCase();
+        const mentionedElsewhere = allTasks.filter(t =>
+          t.assignee !== assignee && (
+            t.title.toLowerCase().includes(nameLower) ||
+            (t.description && t.description.toLowerCase().includes(nameLower))
+          )
+        );
+
+        if (mentionedElsewhere.length > 0) {
+          // Build tag distribution for tasks mentioning this person under other assignees
+          const tagCounts = {};
+          for (const t of mentionedElsewhere) {
+            if (t.tags) {
+              for (const tg of t.tags) {
+                tagCounts[tg] = (tagCounts[tg] || 0) + 1;
+              }
+            }
+          }
+          const tagBreakdown = Object.entries(tagCounts)
+            .sort((a, b) => b[1] - a[1])
+            .map(([tg, n]) => `${tg}(${n})`)
+            .join(', ');
+
+          result.hint = `Showing ${totalFiltered} task(s) directly ASSIGNED to "${assignee}". Additionally, ${mentionedElsewhere.length} task(s) assigned to OTHER family members mention "${assignee}" by name in their title/description. Tags on those tasks: ${tagBreakdown}. If the user is asking about a specific TOPIC related to ${assignee} (e.g. school, health), try adding a tag filter (e.g. list_tasks({tag: 'school'})) or use search_tasks("${assignee}") to find ALL tasks about ${assignee} regardless of who they are assigned to.`;
         }
       }
     }
@@ -245,7 +287,7 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
 
 server.tool(
   'get_task',
-  'Get full details of a single task by its ID (e.g. "task-001"). Returns all fields including description, createdAt, and completedAt. Use list_tasks first to find task IDs.',
+  'Get full details of a single task by its ID (e.g. "task-001"). Returns all fields including createdAt and completedAt. Note: list_tasks and search_tasks already include descriptions — use get_task only when you need createdAt/completedAt timestamps.',
   { id: z.string().describe('Task ID, e.g. "task-042". Format: "task-NNN".') },
   async ({ id }) => {
     const tasks = loadTasks();
@@ -297,6 +339,7 @@ Returns paginated results (default limit=50, check "hasMore"). Fetch ALL pages b
     const summaries = page.map(t => ({
       id: t.id,
       title: t.title,
+      description: t.description || null,
       status: t.status,
       priority: t.priority,
       assignee: t.assignee,
