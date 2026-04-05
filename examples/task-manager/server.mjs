@@ -69,13 +69,13 @@ const server = new McpServer({
   instructions: `A family task manager for Alex's household. Manage to-do items for the whole family.
 
 Key conventions:
-- Statuses: "todo", "in_progress", "completed" (aliases like "pending", "done" are accepted but always normalized internally).
+- Statuses: "todo", "in_progress", "completed" (aliases like "pending", "done" are accepted but always normalized internally). These are the ONLY statuses — there are no "blocked", "waiting", or "on_hold" statuses.
 - Priorities (ranked low → urgent): "low" < "medium" < "high" < "urgent". list_tasks results are sorted highest priority first.
 - Assignees: Alex, Sam, Mia, Leo, or unassigned.
 - Tags: home, health, finance, errands, kids, garden, family, car, school.
 
 Critical rules:
-1. **GROUND ANSWERS IN TOOL DATA ONLY.** Never include task names, dates, or details that don't appear in tool results. If a tool returns an empty array or zero results, say so — do NOT guess or fabricate tasks. If results are truncated, make additional calls (with offset) to get the remaining data before answering.
+1. **GROUND ANSWERS IN TOOL DATA ONLY.** Never include task names, dates, or details that don't appear in tool results. If a tool returns an empty array or zero results, say "no matching tasks found" — do NOT guess, fabricate, or extrapolate tasks that might exist. This applies even when the user expects a certain answer (e.g. "fun stuff coming up" → if no fun tasks exist, say so honestly). If results are truncated, make additional calls (with offset) to get the remaining data before answering.
 2. **"All active tasks" → ONE call with excludeStatus="completed".** This is the #1 source of wasted calls. When asked for everything someone is working on, all their tasks, what's on their plate, or tasks that aren't done:
    - ✅ CORRECT: list_tasks(assignee="Sam", excludeStatus="completed") → 1 call
    - ❌ WRONG: list_tasks(assignee="Sam", status="todo") + list_tasks(assignee="Sam", status="in_progress") → 2+ calls, AND misses edge-case statuses
@@ -83,12 +83,13 @@ Critical rules:
    - ✅ CORRECT: list_tasks(assignee="Mia", excludeStatus="completed") + list_tasks(assignee="Leo", excludeStatus="completed") → 2 calls
    - ❌ WRONG: calling per-person per-status → 4-6 calls
 3. **OVERDUE queries → overdue=true.** To find overdue tasks, use list_tasks with overdue=true. NEVER use dueBefore — it returns tasks of ALL statuses including completed.
-4. **Tag/status/assignee filtering → list_tasks, NOT search_tasks.** search_tasks is ONLY for freeform keyword lookups when you don't know which field to filter by. For known tags/assignees/statuses, list_tasks is faster and more reliable.
-5. **search_tasks is substring-based.** "cook" matches "cooking". Use ONE broad query, not multiple narrow variants.
+4. **Tag filtering → list_tasks(tag=...), NOT search_tasks.** Known tags are: home, health, finance, errands, kids, garden, family, car, school. If the user asks about any of these, use list_tasks with the tag filter — do NOT call search_tasks. search_tasks is ONLY for freeform keyword lookups when you don't know which field to filter by (e.g. "cooking", "birthday", or other words that aren't known tags/assignees/statuses).
+5. **search_tasks: ONE broad query only.** It is substring-based — "cook" matches "cooking", "meal" matches "meals". Call it ONCE with the broadest root word. Do NOT call it multiple times with synonyms (e.g. "cooking" then "meals" → just "cook" once).
 6. **Batch updates → update ALL matching items.** When asked to update "all tasks that match X", first list ALL matches, then update_task once for EACH.
 7. **Ties → acknowledge and explain.** When asked for "the highest priority" and multiple tasks tie, say so.
 8. **Combine filters** in a single list_tasks call (e.g. assignee + excludeStatus + tag) rather than making multiple calls.
-9. **Use get_stats** for quick overdue counts, status breakdowns, or completion rates — it returns byStatus, overdue count, completionRate, and topAssignees without listing individual tasks.`,
+9. **Use get_stats for counting/comparison questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "task distribution". It returns byStatus, overdue count, completionRate, and topAssignees without listing individual tasks. Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
+10. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.`,
 });
 
 // --- Read Tools ---
@@ -110,8 +111,8 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
     status: z.string().optional().describe('Filter to ONE specific status: "todo", "in_progress", or "completed". Aliases accepted (e.g. "pending"→todo, "done"→completed). ⚠️ STOP: If you need "all active tasks", do NOT call once with status="todo" then again with status="in_progress" — use excludeStatus="completed" instead (ONE call).'),
     excludeStatus: z.string().optional().describe('★ PREFERRED for "active tasks" queries. excludeStatus="completed" returns ALL non-completed tasks in ONE call. Use this for: "what\'s on their plate", "current tasks", "tasks that aren\'t done". Values: "todo", "in_progress", "completed" (aliases accepted).'),
     assignee: z.string().optional().describe('Filter by person assigned. Known assignees: Alex, Sam, Mia, Leo. Case-sensitive.'),
-    priority: z.string().optional().describe('Filter by priority level: "low", "medium", "high", or "urgent".'),
-    tag: z.string().optional().describe('Filter by tag. Known tags: home, health, finance, errands, kids, garden, family, car, school. Returns only tasks that have this tag. Case-sensitive.'),
+    priority: z.string().optional().describe('Filter by ONE priority level: "low", "medium", "high", or "urgent". Single-value only — for multiple priorities (e.g. "high and urgent"), make one call per priority.'),
+    tag: z.string().optional().describe('Filter by tag. Known tags: home, health, finance, errands, kids, garden, family, car, school. ★ USE THIS instead of search_tasks when filtering by known tag (e.g. tag="garden" for garden tasks). Case-sensitive.'),
     dueBefore: z.string().optional().describe('Due date upper bound (YYYY-MM-DD). WARNING: Returns tasks of ALL statuses including completed — NOT suitable for finding overdue tasks. Use "overdue=true" instead.'),
     dueAfter: z.string().optional().describe('Due date lower bound (YYYY-MM-DD). Returns tasks of ALL statuses including completed.'),
     limit: z.number().optional().describe('Max results per page (default 50). Response includes "hasMore" boolean — if true, increase offset to get next page.'),
@@ -207,9 +208,9 @@ server.tool(
 
 Returns paginated results (default limit=50, check "hasMore"). Fetch ALL pages before acting on results.
 
-⚠️ Do NOT use for structured filtering. If you know the tag, assignee, status, or priority, use list_tasks instead.`,
+⚠️ Do NOT use for structured filtering. If the user asks about a KNOWN TAG (garden, home, health, finance, errands, kids, family, car, school), KNOWN ASSIGNEE (Alex, Sam, Mia, Leo), or status/priority — use list_tasks filters instead. search_tasks is for freeform keywords like "cooking", "birthday", "dentist" that don't map to a filter field.`,
   {
-    query: z.string().describe('Search keyword (case-insensitive substring match). Matches against title, description, and tags. Use broad root words: "cook" matches "cooking", "garden" matches "gardening". One broad query is better than multiple narrow ones.'),
+    query: z.string().describe('Search keyword (case-insensitive substring match). Matches against title, description, and tags. Use the BROADEST root word: "cook" matches "cooking", "meal" matches "meals". Call ONCE — do NOT call again with synonyms (e.g. searching "cooking" then "meals" separately is wrong; just search "cook" once).'),
     limit: z.number().optional().describe('Max results per page (default 50). Response includes "hasMore" boolean — if true, increase offset to get next page.'),
     offset: z.number().optional().describe('Skip N results for pagination (default 0). Use when "hasMore" is true in a previous response.'),
   },
@@ -262,7 +263,11 @@ Returns paginated results (default limit=50, check "hasMore"). Fetch ALL pages b
 
 server.tool(
   'get_stats',
-  'Get summary statistics for the entire task list: total count, breakdown by status (byStatus), overdue count, completion rate (%), and top assignees ranked by task count. Use this for quick counts and overviews instead of listing all tasks. No parameters needed.',
+  `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), and top assignees ranked by task count.
+
+★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "task count by person", "overall status". Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees.
+
+No parameters needed.`,
   {},
   async () => {
     const tasks = loadTasks();
