@@ -17,4 +17,6 @@ If the answer is correct:
 If there are issues:
 {"pass": false, "issues": ["specific issue 1", "specific issue 2"]}
 
+IMPORTANT: Tool results shown may be truncated (marked with "[truncated]"). If the answer contains data beyond what's visible in the truncated result, that does NOT mean the data is fabricated — the full result likely contained it. Only flag data as fabricated if the visible portion contradicts the answer or if no relevant tool was called at all.
+
 Be strict but fair. Flag real problems, not style preferences. A correct answer with informal tone is still correct. Focus on factual accuracy and whether the tools actually did what the user asked.
