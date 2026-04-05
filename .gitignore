@@ -3,3 +3,5 @@ node_modules/
 .mcp-evolve/baselines/
 .mcp-evolve/metrics.json
 *.tgz
+examples/task-manager/.mcp-evolve/
+examples/task-manager/tasks.json

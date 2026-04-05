@@ -33,6 +33,8 @@ export default {
 
   writeTools: ['create_task', 'update_task', 'delete_task'],
 
+  dataDir: join(EXAMPLE_DIR, '.mcp-evolve'),
+
   questionsPerPersona: 2,
   language: 'English',
 
