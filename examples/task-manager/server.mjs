@@ -16,6 +16,37 @@ import { join } from 'node:path';
 
 const TASKS_PATH = join(new URL('.', import.meta.url).pathname, 'tasks.json');
 
+/**
+ * Normalize status strings to canonical values used in the data store.
+ * Canonical statuses: "todo", "in_progress", "completed".
+ * Accepts common synonyms and formatting variations.
+ */
+function normalizeStatus(status) {
+  if (status === undefined) return undefined;
+  const s = status.toLowerCase().trim();
+  const map = {
+    'todo': 'todo',
+    'to_do': 'todo',
+    'to-do': 'todo',
+    'pending': 'todo',
+    'open': 'todo',
+    'not_started': 'todo',
+    'not-started': 'todo',
+    'in_progress': 'in_progress',
+    'in-progress': 'in_progress',
+    'in progress': 'in_progress',
+    'inprogress': 'in_progress',
+    'active': 'in_progress',
+    'started': 'in_progress',
+    'doing': 'in_progress',
+    'completed': 'completed',
+    'done': 'completed',
+    'finished': 'completed',
+    'complete': 'completed',
+  };
+  return map[s] ?? status;  // pass through unknown values as-is
+}
+
 function loadTasks() {
   try {
     return JSON.parse(readFileSync(TASKS_PATH, 'utf-8'));
@@ -32,26 +63,47 @@ const server = new McpServer({
   name: 'task-manager',
   version: '0.1.0',
 }, {
-  instructions: 'A family task manager for Alex\'s household. Manage to-do items for the whole family.',
+  instructions: `A family task manager for Alex's household. Manage to-do items for the whole family.
+
+Key conventions:
+- Statuses: "todo", "in_progress", "completed" (aliases like "pending", "done" are accepted).
+- Priorities: "low", "medium", "high", "urgent".
+- Assignees: Alex, Sam, Mia, Leo, or unassigned.
+- Tags: home, health, finance, errands, kids, garden, family, car, school.
+
+Important usage patterns:
+- To find OVERDUE tasks, use list_tasks with overdue=true. Do NOT use dueBefore for this — dueBefore returns tasks of all statuses including completed.
+- Combine filters in a single list_tasks call (e.g. assignee + status) rather than making multiple calls.
+- For quick overdue counts or status breakdowns, use get_stats instead of listing all tasks.
+- search_tasks only matches against task titles. Use list_tasks with filters for tag/assignee/status queries.
+- Always base your answer on the actual data returned by tools. If a tool returns an empty array, report that — do not infer or fabricate tasks.`,
 });
 
 // --- Read Tools ---
 
 server.tool(
   'list_tasks',
-  'Get tasks.',
+  'List tasks with optional filters. Filters can be combined in a single call (e.g. assignee + status). Returns paginated results (default limit=50); check "hasMore" in response to know if more pages exist. For "what is overdue?" questions, you MUST use overdue=true — do NOT use dueBefore (it includes completed tasks).',
   {
-    status: z.string().optional().describe('Filter by status'),
-    assignee: z.string().optional().describe('Filter by person'),
-    priority: z.string().optional().describe('Filter by priority'),
-    dueBefore: z.string().optional().describe('Due date upper bound'),
-    dueAfter: z.string().optional().describe('Due date lower bound'),
+    overdue: z.boolean().optional().describe('**Use this for overdue queries.** Set to true to return ONLY tasks that are past due AND not completed. This is the correct way to answer "what is overdue?" — do NOT use dueBefore for overdue queries.'),
+    status: z.string().optional().describe('Filter by status. Canonical values: "todo", "in_progress", "completed". Aliases accepted: "pending"→todo, "in-progress"→in_progress, "done"→completed.'),
+    assignee: z.string().optional().describe('Filter by person assigned. Known assignees: Alex, Sam, Mia, Leo. Case-sensitive.'),
+    priority: z.string().optional().describe('Filter by priority level: "low", "medium", "high", or "urgent".'),
+    dueBefore: z.string().optional().describe('Due date upper bound (YYYY-MM-DD). WARNING: Returns tasks of ALL statuses including completed — NOT suitable for finding overdue tasks. Use "overdue=true" instead.'),
+    dueAfter: z.string().optional().describe('Due date lower bound (YYYY-MM-DD). Returns tasks of ALL statuses including completed.'),
+    limit: z.number().optional().describe('Max results per page (default 50). Response includes "hasMore" boolean — if true, increase offset to get next page.'),
+    offset: z.number().optional().describe('Skip N tasks for pagination (default 0). Use when "hasMore" is true in a previous response.'),
   },
-  async ({ status, assignee, priority, dueBefore, dueAfter }) => {
+  async ({ status, assignee, priority, dueBefore, dueAfter, overdue, limit, offset }) => {
     let tasks = loadTasks();
+    const normalizedStatus = normalizeStatus(status);
 
-    if (status !== undefined) {
-      tasks = tasks.filter(t => t.status === status);
+    if (overdue === true) {
+      const now = new Date().toISOString().slice(0, 10);
+      tasks = tasks.filter(t => t.status !== 'completed' && t.dueDate && t.dueDate < now);
+    }
+    if (normalizedStatus !== undefined) {
+      tasks = tasks.filter(t => t.status === normalizedStatus);
     }
     if (assignee !== undefined) {
       tasks = tasks.filter(t => t.assignee === assignee);
@@ -66,6 +118,11 @@ server.tool(
       tasks = tasks.filter(t => t.dueDate && t.dueDate >= dueAfter);
     }
 
+    const totalFiltered = tasks.length;
+    const effectiveOffset = offset ?? 0;
+    const effectiveLimit = limit ?? 50;
+    tasks = tasks.slice(effectiveOffset, effectiveOffset + effectiveLimit);
+
     const summaries = tasks.map(t => ({
       id: t.id,
       title: t.title,
@@ -76,31 +133,44 @@ server.tool(
       tags: t.tags,
     }));
 
-    return { content: [{ type: 'text', text: JSON.stringify(summaries, null, 2) }] };
+    const result = {
+      tasks: summaries,
+      total: totalFiltered,
+      offset: effectiveOffset,
+      limit: effectiveLimit,
+      hasMore: effectiveOffset + effectiveLimit < totalFiltered,
+    };
+
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
   },
 );
 
 server.tool(
   'get_task',
-  'Get a single task by its ID.',
-  { id: z.string().describe('Task ID') },
+  'Get full details of a single task by its ID (e.g. "task-001"). Returns all fields including description, createdAt, and completedAt. Use list_tasks first to find task IDs.',
+  { id: z.string().describe('Task ID, e.g. "task-042". Format: "task-NNN".') },
   async ({ id }) => {
     const tasks = loadTasks();
     const task = tasks.find(t => t.id === id);
-    // PLANTED SLOPPINESS: returns null instead of an error message when task not found
-    return { content: [{ type: 'text', text: JSON.stringify(task || null) }] };
+    if (!task) {
+      return { content: [{ type: 'text', text: `Error: No task found with ID "${id}". Use list_tasks to find valid task IDs.` }], isError: true };
+    }
+    return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
   },
 );
 
 server.tool(
   'search_tasks',
-  'Search tasks across all fields.',
-  { query: z.string().describe('Search query') },
+  'Search tasks by keyword in title, description, and tags. Returns matching task summaries. For filtering by status, assignee, priority, or date, use list_tasks instead.',
+  { query: z.string().describe('Search keyword (case-insensitive). Matches against task title, description, and tags.') },
   async ({ query }) => {
     const tasks = loadTasks();
     const q = query.toLowerCase();
-    // PLANTED BUG: only searches title, not description or tags
-    const matches = tasks.filter(t => t.title.toLowerCase().includes(q));
+    const matches = tasks.filter(t =>
+      t.title.toLowerCase().includes(q) ||
+      (t.description && t.description.toLowerCase().includes(q)) ||
+      (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q)))
+    );
 
     const summaries = matches.map(t => ({
       id: t.id,
