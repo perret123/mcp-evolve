@@ -19,3 +19,4 @@ Rules:
 - If the error is in the schema (wrong types, missing fields), fix the schema
 - If the error is in the handler logic, fix the handler
 - Keep changes small and focused on the specific error
+- NEVER add instructions to reduce tool calls. Tool calls are cheap, wrong answers are expensive. Do not add "ONE call only", "do NOT retry", or "minimize calls" language to descriptions.
