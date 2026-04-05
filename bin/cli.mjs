@@ -40,9 +40,12 @@ const { values: args, positionals } = parseArgs({
     'regression-file': { type: 'string' },
     'golden-max': { type: 'string' },
     'skip-golden': { type: 'boolean' },
+    'skip-auto-dev': { type: 'boolean' },
+    'skip-grading': { type: 'boolean' },
     escalate: { type: 'boolean' },
     'no-escalate': { type: 'boolean' },
     'streak-threshold': { type: 'string' },
+    config: { type: 'string', short: 'c' },
     verbose: { type: 'boolean', short: 'v' },
     help: { type: 'boolean', short: 'h' },
   },
@@ -99,11 +102,12 @@ if (command === 'init') {
 }
 
 // Load config
-const config = await loadConfig('.');
+const config = await loadConfig('.', args.config);
 const errors = validateConfig(config);
 
 if (command === 'status') {
-  console.log(printPersonaMap(config.personas));
+  const statusConfig = await loadConfig('.', args.config);
+  console.log(printPersonaMap(statusConfig.personas));
   console.log('');
 
   try {
@@ -159,6 +163,8 @@ await run(config, {
   regressionFile: args['regression-file'],
   goldenMax: args['golden-max'] ? parseInt(args['golden-max'], 10) : undefined,
   skipGolden: args['skip-golden'],
+  skipAutoDev: args['skip-auto-dev'],
+  skipGrading: args['skip-grading'],
   forceEscalate: args.escalate,
   noEscalate: args['no-escalate'],
   streakThreshold: args['streak-threshold'] ? parseInt(args['streak-threshold'], 10) : 3,
