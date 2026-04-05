@@ -93,7 +93,7 @@ Critical rules:
 11. **Use get_stats for counting/comparison questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "task distribution". It returns byStatus, overdue count, completionRate, and topAssignees without listing individual tasks. Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
 12. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
 13. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?").
-14. **"Can we…", "Let's…", "I want to…" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead.
+14. **"Can we…", "Let's…", "I want to…" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead. **Exception: if the action requires a value the user hasn't provided** (e.g. "Can we reschedule these?" but no target date, "reassign these" but no target person), list the matching tasks and ask ONLY for the missing value — then execute immediately once you have it. This is asking for missing information, not asking for confirmation.
 15. **"Unassigned tasks" → use list_tasks(unassigned=true).** To find tasks with no assignee, use the unassigned=true filter. Do NOT try to pass null or empty string to the assignee parameter.`,
 });
 
@@ -472,6 +472,8 @@ server.tool(
 
 ⚠️ "Can we bump up…", "Let's change…", "I want to move…" are ACTION REQUESTS — you MUST execute the update_task calls. Do NOT just list tasks and ask for confirmation; the user already asked you to do it.
 
+💡 If the target value is missing (e.g. "reschedule these" without a new date, or "reassign" without specifying who), list the tasks and ask for the missing value only — then execute the updates immediately. This is NOT asking for confirmation; it's gathering a required parameter.
+
 Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "low", "medium", "high", "urgent".`,
   {
     id: z.string().describe('Task ID to update, e.g. "task-042". Get IDs from list_tasks or search_tasks first.'),
@@ -480,8 +482,8 @@ Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "lo
     status: z.string().optional().describe('New status: "todo", "in_progress", or "completed" (aliases like "done", "pending" accepted)'),
     priority: z.string().optional().describe('New priority: "low", "medium", "high", or "urgent"'),
     assignee: z.string().optional().describe('New assignee. Known: Alex, Sam, Mia, Leo. ⚠️ If user says "assign to me" or "I\'ll take it", you MUST ask which family member they are first — do NOT assume.'),
-    dueDate: z.string().optional().describe('New due date (YYYY-MM-DD)'),
-    tags: z.array(z.string()).optional().describe('New tags (replaces all existing tags)'),
+    dueDate: z.string().optional().describe('New due date (YYYY-MM-DD). Use for rescheduling — e.g. "move to next Monday" → compute the date and pass "2026-04-13". If the user says "reschedule" without specifying a date, ask them for the target date before calling.'),
+    tags: z.array(z.string()).optional().describe('New tags (replaces all existing tags). Pass the FULL array — existing tags are overwritten, not merged.'),
   },
   async ({ id, title, description, status, priority, assignee, dueDate, tags }) => {
     const tasks = loadTasks();
@@ -517,14 +519,17 @@ Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "lo
 
 server.tool(
   'delete_task',
-  'Delete a task.',
-  { id: z.string().describe('Task ID to delete') },
+  'Permanently delete a task by ID. Returns an error if the task does not exist. Get valid task IDs from list_tasks or search_tasks first.',
+  { id: z.string().describe('Task ID to delete, e.g. "task-042". Get IDs from list_tasks or search_tasks first.') },
   async ({ id }) => {
     const tasks = loadTasks();
-    // PLANTED BUG: filters and saves regardless of whether task existed — always returns success
-    const filtered = tasks.filter(t => t.id !== id);
-    saveTasks(filtered);
-    return { content: [{ type: 'text', text: JSON.stringify({ success: true, id }) }] };
+    const idx = tasks.findIndex(t => t.id === id);
+    if (idx === -1) {
+      return { content: [{ type: 'text', text: `Error: No task found with ID "${id}". Use list_tasks to find valid task IDs.` }], isError: true };
+    }
+    const deleted = tasks.splice(idx, 1)[0];
+    saveTasks(tasks);
+    return { content: [{ type: 'text', text: JSON.stringify({ success: true, id, deleted: { title: deleted.title, assignee: deleted.assignee } }) }] };
   },
 );
 
