@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "task-manager": {
+      "command": "node",
+      "args": ["examples/task-manager/server.mjs"]
+    }
+  }
+}
