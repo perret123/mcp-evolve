@@ -89,8 +89,10 @@ Critical rules:
    - Check the "hint" field in list_tasks responses — it flags tasks that mention the person by name
    Only after 2-3 search strategies return nothing can you report "no matching tasks found". A single narrow query returning 0 is NOT sufficient for action requests.
 9. **Filters can be combined** in a single list_tasks call (e.g. assignee + excludeStatus + tag).
-9. **Use get_stats for counting/comparison questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "task distribution". It returns byStatus, overdue count, completionRate, and topAssignees without listing individual tasks. Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
-10. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.`,
+10. **Use get_stats for counting/comparison questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "task distribution". It returns byStatus, overdue count, completionRate, and topAssignees without listing individual tasks. Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
+11. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
+12. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?").
+13. **"Can we…", "Let's…", "I want to…" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead.`,
 });
 
 // --- Read Tools ---
@@ -103,6 +105,7 @@ Tips:
 • Use excludeStatus="completed" for "all active/current/not-done tasks".
 • Use overdue=true for overdue tasks (not dueBefore, which includes completed).
 • Use tag filter for known tags (garden, school, etc.) — more reliable than search_tasks.
+• For CATEGORY queries ("kids' school tasks", "garden stuff"), use the TAG filter — NOT the assignee filter. Tasks about kids/school/garden may be assigned to ANY family member. Example: "kids' school tasks" → list_tasks({tag: 'school', excludeStatus: 'completed'}) finds ALL school tasks regardless of who's assigned.
 
 Results sorted by priority (urgent→low), then due date. Paginated (default limit=50, check "hasMore").
 
@@ -185,15 +188,14 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
       hasMore: effectiveOffset + effectiveLimit < totalFiltered,
     };
 
-    // When an assignee filter yields zero results combined with other filters,
-    // check if there are tasks that *mention* the assignee in title/description
-    // but are assigned to someone else — "Mia's tasks" often means tasks *about* Mia.
-    if (totalFiltered === 0 && assignee !== undefined) {
-      const allTasks = loadTasks();
-      const nameLower = assignee.toLowerCase();
+    // When an assignee filter is used with other filters, check if there are
+    // additional matching tasks assigned to other people — "kids' school tasks"
+    // may be assigned to any family member, not just the kids themselves.
+    if (assignee !== undefined) {
       const hasOtherFilters = tag !== undefined || normalizedStatus !== undefined || normalizedExcludeStatus !== undefined || priority !== undefined || dueBefore !== undefined || dueAfter !== undefined || overdue === true;
       if (hasOtherFilters) {
-        // Re-apply all non-assignee filters and look for name mentions in title/description
+        // Re-apply all non-assignee filters to find the full set of matching tasks
+        const allTasks = loadTasks();
         let broader = allTasks;
         if (overdue === true) {
           const now = new Date().toISOString().slice(0, 10);
@@ -206,23 +208,33 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
         if (dueBefore !== undefined) broader = broader.filter(t => t.dueDate && t.dueDate <= dueBefore);
         if (dueAfter !== undefined) broader = broader.filter(t => t.dueDate && t.dueDate >= dueAfter);
 
-        const mentionMatches = broader.filter(t =>
-          t.assignee !== assignee && (
-            t.title.toLowerCase().includes(nameLower) ||
-            (t.description && t.description.toLowerCase().includes(nameLower))
-          )
-        );
-        if (mentionMatches.length > 0) {
-          result.hint = `No tasks are directly ASSIGNED to "${assignee}" matching these filters, but ${mentionMatches.length} task(s) mention "${assignee}" in their title/description: ${mentionMatches.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee})`).join(', ')}. The user may be referring to these — try removing the assignee filter or using search_tasks("${assignee}") to find tasks ABOUT this person.`;
-        } else {
-          // No mention-matches either — guide the LLM to broaden further
-          const filterDesc = [
-            tag && `tag="${tag}"`,
-            normalizedStatus && `status="${normalizedStatus}"`,
-            normalizedExcludeStatus && `excludeStatus="${normalizedExcludeStatus}"`,
-            priority && `priority="${priority}"`,
-          ].filter(Boolean).join(' + ');
-          result.hint = `Zero results for assignee="${assignee}" with ${filterDesc}. Before concluding no tasks exist: (1) try dropping the assignee filter to see if matching tasks are assigned to someone else, (2) try dropping the tag filter — the task may not be tagged as expected, (3) try search_tasks("${assignee}") or search_tasks with the topic keyword to find tasks by content rather than structured filters.`;
+        const otherAssigneeTasks = broader.filter(t => t.assignee !== assignee);
+
+        if (totalFiltered === 0) {
+          // Zero results with assignee filter — check for name mentions and guide broadening
+          const nameLower = assignee.toLowerCase();
+          const mentionMatches = broader.filter(t =>
+            t.assignee !== assignee && (
+              t.title.toLowerCase().includes(nameLower) ||
+              (t.description && t.description.toLowerCase().includes(nameLower))
+            )
+          );
+          if (mentionMatches.length > 0) {
+            result.hint = `No tasks are directly ASSIGNED to "${assignee}" matching these filters, but ${mentionMatches.length} task(s) mention "${assignee}" in their title/description: ${mentionMatches.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee})`).join(', ')}. The user may be referring to these — try removing the assignee filter or using search_tasks("${assignee}") to find tasks ABOUT this person.`;
+          } else {
+            // No mention-matches either — guide the LLM to broaden further
+            const filterDesc = [
+              tag && `tag="${tag}"`,
+              normalizedStatus && `status="${normalizedStatus}"`,
+              normalizedExcludeStatus && `excludeStatus="${normalizedExcludeStatus}"`,
+              priority && `priority="${priority}"`,
+            ].filter(Boolean).join(' + ');
+            result.hint = `Zero results for assignee="${assignee}" with ${filterDesc}. Before concluding no tasks exist: (1) try dropping the assignee filter to see if matching tasks are assigned to someone else, (2) try dropping the tag filter — the task may not be tagged as expected, (3) try search_tasks("${assignee}") or search_tasks with the topic keyword to find tasks by content rather than structured filters.`;
+          }
+        } else if (otherAssigneeTasks.length > 0) {
+          // Some results found, but MORE matching tasks exist under other assignees.
+          // Alert the LLM so it doesn't assume the assignee-filtered view is complete.
+          result.hint = `Showing ${totalFiltered} task(s) assigned to "${assignee}", but ${otherAssigneeTasks.length} additional task(s) match these filters under OTHER assignees: ${otherAssigneeTasks.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee || 'unassigned'})`).join(', ')}. ⚠️ The assignee filter may be too narrow — for a COMPLETE view of all matching tasks (e.g. all "school" tasks regardless of who's assigned), call list_tasks WITHOUT the assignee filter.`;
         }
       }
     }
@@ -404,10 +416,12 @@ server.tool(
   'update_task',
   `Update one task by ID. Only include fields you want to change — omitted fields stay unchanged.
 
-★ WORKFLOW for batch updates ("move ALL of X's tasks to Y", "set priority on all matching"):
-1. First call list_tasks (with filters) to find ALL matching task IDs.
+★ WORKFLOW for batch updates ("move ALL of X's tasks to Y", "set priority on all matching", "bump up the priority on school tasks"):
+1. First call list_tasks with TAG or other filters to find ALL matching task IDs. For category queries like "kids' school tasks", use tag='school' — NOT assignee filters (tasks about kids may be assigned to parents).
 2. If 0 results: DO NOT stop here for action requests. Try broader filters — drop assignee, drop tag, or use search_tasks. "Mia's school tasks" might be assigned to Alex but about Mia, or tagged differently than expected.
 3. Once you have task IDs, call update_task ONCE PER matching task. Do not skip the writes.
+
+⚠️ "Can we bump up…", "Let's change…", "I want to move…" are ACTION REQUESTS — you MUST execute the update_task calls. Do NOT just list tasks and ask for confirmation; the user already asked you to do it.
 
 Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "low", "medium", "high", "urgent".`,
   {
