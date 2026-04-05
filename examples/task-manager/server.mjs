@@ -84,10 +84,16 @@ Critical rules:
    - ❌ WRONG: calling per-person per-status → 4-6 calls
 3. **OVERDUE queries → overdue=true.** To find overdue tasks, use list_tasks with overdue=true. NEVER use dueBefore — it returns tasks of ALL statuses including completed.
 4. **Tag filtering → list_tasks(tag=...), NOT search_tasks.** Known tags are: home, health, finance, errands, kids, garden, family, car, school. If the user asks about any of these, use list_tasks with the tag filter — do NOT call search_tasks. search_tasks is ONLY for freeform keyword lookups when you don't know which field to filter by (e.g. "cooking", "birthday", or other words that aren't known tags/assignees/statuses).
-5. **search_tasks: ONE broad query only.** It is substring-based — "cook" matches "cooking", "meal" matches "meals". Call it ONCE with the broadest root word. Do NOT call it multiple times with synonyms (e.g. "cooking" then "meals" → just "cook" once).
-6. **Batch updates → update ALL matching items.** When asked to update "all tasks that match X", first list ALL matches, then update_task once for EACH.
+5. **search_tasks: ONE broad query only.** It is substring-based — "cook" matches "cooking", "meal" matches "meals". Call it ONCE with the broadest root word. Do NOT call it multiple times with synonyms (e.g. "cooking" then "meals" then "food" then "dinner" → just "cook" once). If one search returns few/no results, that IS the answer — do not retry with synonyms.
+6. **Batch updates → update ALL matching items.** When asked to update "all tasks that match X", first list ALL matches, then update_task once for EACH. The task is NOT done until the write calls are made.
 7. **Ties → acknowledge and explain.** When asked for "the highest priority" and multiple tasks tie, say so.
-8. **Combine filters** in a single list_tasks call (e.g. assignee + excludeStatus + tag) rather than making multiple calls.
+8. **ACTION REQUESTS require thorough search before giving up.** When asked to update/move/delete tasks and your first query returns 0 results, you MUST broaden the search before concluding no tasks exist:
+   - Drop the assignee filter (tasks "about" Mia may be assigned to Alex)
+   - Drop the tag filter (school tasks might not be tagged "school")
+   - Try search_tasks with the person's name or keyword
+   - Check the "hint" field in list_tasks responses — it flags tasks that mention the person by name
+   Only after 2-3 search strategies return nothing can you report "no matching tasks found". A single narrow query returning 0 is NOT sufficient for action requests.
+9. **Combine filters** in a single list_tasks call (e.g. assignee + excludeStatus + tag) rather than making multiple calls.
 9. **Use get_stats for counting/comparison questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "task distribution". It returns byStatus, overdue count, completionRate, and topAssignees without listing individual tasks. Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
 10. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.`,
 });
@@ -105,7 +111,9 @@ server.tool(
 • "Overdue" → ONE call with overdue=true. Do NOT use dueBefore.
 • Tag/assignee/status filtering → use list_tasks filters, not search_tasks.
 
-Results sorted by priority (urgent→low), then due date. Paginated (default limit=50, check "hasMore").`,
+Results sorted by priority (urgent→low), then due date. Paginated (default limit=50, check "hasMore").
+
+💡 "Someone's tasks" can mean tasks ASSIGNED to them OR tasks ABOUT them (mentioned in title/description but assigned to another family member). When assignee + other filters return 0 results, the response may include a "hint" field listing tasks that mention the person — follow the hint to broaden your search before concluding no tasks exist.`,
   {
     overdue: z.boolean().optional().describe('**Use this for overdue queries.** Set to true to return ONLY tasks that are past due AND not completed. This is the correct way to answer "what is overdue?" — do NOT use dueBefore for overdue queries.'),
     status: z.string().optional().describe('Filter to ONE specific status: "todo", "in_progress", or "completed". Aliases accepted (e.g. "pending"→todo, "done"→completed). ⚠️ STOP: If you need "all active tasks", do NOT call once with status="todo" then again with status="in_progress" — use excludeStatus="completed" instead (ONE call).'),
@@ -184,6 +192,48 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
       hasMore: effectiveOffset + effectiveLimit < totalFiltered,
     };
 
+    // When an assignee filter yields zero results combined with other filters,
+    // check if there are tasks that *mention* the assignee in title/description
+    // but are assigned to someone else — "Mia's tasks" often means tasks *about* Mia.
+    if (totalFiltered === 0 && assignee !== undefined) {
+      const allTasks = loadTasks();
+      const nameLower = assignee.toLowerCase();
+      const hasOtherFilters = tag !== undefined || normalizedStatus !== undefined || normalizedExcludeStatus !== undefined || priority !== undefined || dueBefore !== undefined || dueAfter !== undefined || overdue === true;
+      if (hasOtherFilters) {
+        // Re-apply all non-assignee filters and look for name mentions in title/description
+        let broader = allTasks;
+        if (overdue === true) {
+          const now = new Date().toISOString().slice(0, 10);
+          broader = broader.filter(t => t.status !== 'completed' && t.dueDate && t.dueDate < now);
+        }
+        if (normalizedStatus !== undefined) broader = broader.filter(t => t.status === normalizedStatus);
+        if (normalizedExcludeStatus !== undefined) broader = broader.filter(t => t.status !== normalizedExcludeStatus);
+        if (priority !== undefined) broader = broader.filter(t => t.priority === priority);
+        if (tag !== undefined) broader = broader.filter(t => t.tags && t.tags.includes(tag));
+        if (dueBefore !== undefined) broader = broader.filter(t => t.dueDate && t.dueDate <= dueBefore);
+        if (dueAfter !== undefined) broader = broader.filter(t => t.dueDate && t.dueDate >= dueAfter);
+
+        const mentionMatches = broader.filter(t =>
+          t.assignee !== assignee && (
+            t.title.toLowerCase().includes(nameLower) ||
+            (t.description && t.description.toLowerCase().includes(nameLower))
+          )
+        );
+        if (mentionMatches.length > 0) {
+          result.hint = `No tasks are directly ASSIGNED to "${assignee}" matching these filters, but ${mentionMatches.length} task(s) mention "${assignee}" in their title/description: ${mentionMatches.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee})`).join(', ')}. The user may be referring to these — try removing the assignee filter or using search_tasks("${assignee}") to find tasks ABOUT this person.`;
+        } else {
+          // No mention-matches either — guide the LLM to broaden further
+          const filterDesc = [
+            tag && `tag="${tag}"`,
+            normalizedStatus && `status="${normalizedStatus}"`,
+            normalizedExcludeStatus && `excludeStatus="${normalizedExcludeStatus}"`,
+            priority && `priority="${priority}"`,
+          ].filter(Boolean).join(' + ');
+          result.hint = `Zero results for assignee="${assignee}" with ${filterDesc}. Before concluding no tasks exist: (1) try dropping the assignee filter to see if matching tasks are assigned to someone else, (2) try dropping the tag filter — the task may not be tagged as expected, (3) try search_tasks("${assignee}") or search_tasks with the topic keyword to find tasks by content rather than structured filters.`;
+        }
+      }
+    }
+
     return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
   },
 );
@@ -210,7 +260,7 @@ Returns paginated results (default limit=50, check "hasMore"). Fetch ALL pages b
 
 ⚠️ Do NOT use for structured filtering. If the user asks about a KNOWN TAG (garden, home, health, finance, errands, kids, family, car, school), KNOWN ASSIGNEE (Alex, Sam, Mia, Leo), or status/priority — use list_tasks filters instead. search_tasks is for freeform keywords like "cooking", "birthday", "dentist" that don't map to a filter field.`,
   {
-    query: z.string().describe('Search keyword (case-insensitive substring match). Matches against title, description, and tags. Use the BROADEST root word: "cook" matches "cooking", "meal" matches "meals". Call ONCE — do NOT call again with synonyms (e.g. searching "cooking" then "meals" separately is wrong; just search "cook" once).'),
+    query: z.string().describe('Search keyword (case-insensitive substring match). Matches against title, description, and tags. Use the BROADEST root word: "cook" matches "cooking", "meal" matches "meals". ⛔ ONE CALL ONLY — do NOT call again with synonyms. Example: for cooking/food/meals, search "cook" ONCE. Do NOT then search "meal", "food", "dinner", "recipe" etc. If the first search returns few results, that IS the answer — do not retry with variations.'),
     limit: z.number().optional().describe('Max results per page (default 50). Response includes "hasMore" boolean — if true, increase offset to get next page.'),
     offset: z.number().optional().describe('Skip N results for pagination (default 0). Use when "hasMore" is true in a previous response.'),
   },
@@ -359,16 +409,23 @@ server.tool(
 
 server.tool(
   'update_task',
-  'Update a task.',
+  `Update one task by ID. Only include fields you want to change — omitted fields stay unchanged.
+
+★ WORKFLOW for batch updates ("move ALL of X's tasks to Y", "set priority on all matching"):
+1. First call list_tasks (with filters) to find ALL matching task IDs.
+2. If 0 results: DO NOT stop here for action requests. Try broader filters — drop assignee, drop tag, or use search_tasks. "Mia's school tasks" might be assigned to Alex but about Mia, or tagged differently than expected.
+3. Once you have task IDs, call update_task ONCE PER matching task. Do not skip the writes.
+
+Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "low", "medium", "high", "urgent".`,
   {
-    id: z.string().describe('Task ID to update'),
+    id: z.string().describe('Task ID to update, e.g. "task-042". Get IDs from list_tasks or search_tasks first.'),
     title: z.string().optional().describe('New title'),
     description: z.string().optional().describe('New description'),
-    status: z.string().optional().describe('New status'),
-    priority: z.string().optional().describe('New priority'),
-    assignee: z.string().optional().describe('New assignee'),
-    dueDate: z.string().optional().describe('New due date'),
-    tags: z.array(z.string()).optional().describe('New tags'),
+    status: z.string().optional().describe('New status: "todo", "in_progress", or "completed" (aliases like "done", "pending" accepted)'),
+    priority: z.string().optional().describe('New priority: "low", "medium", "high", or "urgent"'),
+    assignee: z.string().optional().describe('New assignee. Known: Alex, Sam, Mia, Leo.'),
+    dueDate: z.string().optional().describe('New due date (YYYY-MM-DD)'),
+    tags: z.array(z.string()).optional().describe('New tags (replaces all existing tags)'),
   },
   async ({ id, title, description, status, priority, assignee, dueDate, tags }) => {
     const tasks = loadTasks();
