@@ -1,0 +1,5 @@
+node_modules/
+.mcp-evolve/logs/
+.mcp-evolve/baselines/
+.mcp-evolve/metrics.json
+*.tgz

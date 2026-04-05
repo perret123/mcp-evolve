@@ -1,0 +1,34 @@
+{
+  "name": "mcp-evolve",
+  "version": "0.1.0",
+  "description": "Self-improving test harness for MCP servers. Persona-based testing, automatic fixes, escalation, and golden set regression.",
+  "type": "module",
+  "bin": {
+    "mcp-evolve": "./bin/cli.mjs"
+  },
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./eval": "./lib/eval.mjs",
+    "./metrics": "./lib/metrics.mjs",
+    "./personas": "./lib/personas.mjs"
+  },
+  "scripts": {
+    "start": "node bin/cli.mjs",
+    "test": "node --test test/*.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "testing",
+    "evaluation",
+    "self-improving",
+    "ai-agents",
+    "llm",
+    "claude"
+  ],
+  "author": "Michael Perret",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}
