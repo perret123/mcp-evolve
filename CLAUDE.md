@@ -57,15 +57,15 @@ SEED → GENERATE (Sonnet) → ANSWER (Opus, name-only user context)
 - **Escalation uses relative dates** ("next week", not "April 10th") — stays valid across runs
 - **Replay always runs** after fixing (not gated on buildCommand)
 
-## Model Configuration (all configurable in evolve.config.mjs)
-- `questionModel`: question generation (default: sonnet)
-- `answererModel`: answering questions (default: opus)
-- `graderModel`: semantic grading (default: sonnet)
-- `fixerModel`: fixing errors (default: opus)
-- `reviewerModel`: reviewing descriptions (default: opus)
-- `escalatorModel`: escalation questions (default: opus)
-- `proposalModel`: feature proposals in competition (default: opus)
-- `voterModel`: voting in competition (default: opus)
+## Model Configuration (all configurable in evolve.config.mjs, all default to sonnet)
+- `questionModel`: question generation
+- `answererModel`: answering questions
+- `graderModel`: semantic grading
+- `fixerModel`: fixing errors
+- `reviewerModel`: reviewing descriptions
+- `escalatorModel`: escalation questions
+- `proposalModel`: feature proposals in competition
+- `voterModel`: voting in competition
 
 ## Competition Configuration
 - `competitionGroups`: number of groups (default: 3)

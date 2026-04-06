@@ -106,6 +106,10 @@ export default {
   reset: async (config) => { ... },           // clean up after run
   describeState: (config) => '...',           // static description of test data
   prefetch: async (claude, config) => '...',  // fetch live IDs/names
+  healthcheck: async ({ config, runDateContext }) => ({ ok: true }),
+  timeZone: 'Europe/Zurich',                  // optional: run-wide date anchor timezone
+  nextWeekdayMode: 'following-week',          // optional: "next Friday" semantics
+  relativeDateRules: '"next Friday" means the Friday of the following week',
 
   // -- Personas --
   personas: [
@@ -147,9 +151,33 @@ describeState: () => `
 `,
 ```
 
+### Date anchoring
+
+Relative dates are a common source of false negatives. mcp-evolve can anchor the whole run to one canonical date context:
+
+- `timeZone` — timezone used for date interpretation
+- `referenceNow` — optional fixed clock for deterministic tests
+- `nextWeekdayMode` — `"nearest-upcoming"` or `"following-week"`
+- `relativeDateRules` — extra natural-language guidance passed to the answerer and grader
+
+At the start of each run, mcp-evolve computes one shared date context and passes it to question generation, answering, escalation, and grading. For common phrases like `today`, `tomorrow`, `this Wednesday`, and `next Friday`, it also resolves them once into canonical `YYYY-MM-DD` values and gives the same mapping to both the answerer and the grader.
+
+For date-only tools, keep date-only values. Do not add fake time-of-day precision unless your MCP schema actually needs timestamps.
+
+### Healthcheck and invalid-run quarantine
+
+Use `healthcheck` when your MCP server needs an explicit readiness check before testing. The hook runs after `seed()` and before question generation. If it throws or returns `{ ok: false, error: ... }`, the run is marked invalid and quarantined from:
+
+- baselines
+- golden-set health updates
+- metrics
+- escalation
+
+mcp-evolve also quarantines runs that lose access to the configured MCP tools mid-run. These are logged as invalid harness failures instead of being treated as regressions in the server under test.
+
 ### Smart question gating
 
-- **Golden questions failing?** Skip new question generation — focus on fixing existing failures first
+- **Any golden questions failing?** Skip new question generation globally — focus on fixing existing failures first
 - **Question blocked (3+ consecutive fails)?** Skip it, flag for manual investigation
 - **Blocked questions exist?** No escalation — fix what's broken before generating harder tests
 - **3x 100% streak?** Escalate — read source code to find untested capabilities
@@ -216,10 +244,11 @@ Each question is scored on:
 | `completed` | Did the LLM produce a substantial answer? |
 | `isActionRequest` | Does the question ask for a mutation? (context-aware — "how does adding work?" is NOT an action) |
 | `writeToolCalled` | For action requests, did the LLM actually call a write tool? |
+| `actionRequirementMet` | For action requests, did the assistant either call a write tool or correctly explain a valid no-op? |
 | `stuck` | Action request + no write tool + 5+ reads = stuck in read loop |
 | `errorsFound` | MCP tool errors during the answer |
 
-A question **passes** when: completed AND not stuck AND zero errors.
+A question **passes** when: completed AND actionRequirementMet AND not stuck AND zero errors.
 
 ## Metrics
 
