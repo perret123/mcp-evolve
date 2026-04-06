@@ -23,6 +23,7 @@ Rules:
 - Use actual entity names if provided (from the prefetch data)
 - Write as the persona would speak (direct commands for operators, analytical for analysts)
 - The question should test something the EXISTING questions don't cover
+- ALWAYS use relative dates: "this week", "next Monday", "in the next 2 weeks", "by end of month" — NEVER absolute dates like "April 10th" or "2026-04-15". Relative dates keep questions valid across runs.
 - In the "why" field, reference the specific code/tool/parameter you're targeting
 
 Output JSON only: {"questions": [{"persona": "persona-id", "question": "the question", "why": "what this tests that hasn't been tested"}]}
