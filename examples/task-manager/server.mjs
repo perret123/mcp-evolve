@@ -75,7 +75,7 @@ Key conventions:
 - Tags: home, health, finance, errands, kids, garden, family, car, school.
 
 Critical rules:
-1. **NEVER assume the user's identity.** When the user says "me", "my tasks", "assign to me", or "I", do NOT assume they are Alex or any other family member. Ask the user to clarify who they are first (e.g. "Which family member are you — Alex, Sam, Mia, or Leo?"). The household has multiple members and the system does not track who is currently speaking.
+1. **ALWAYS FETCH DATA FIRST — identity ambiguity NEVER blocks read calls.** When the user says "me", "my tasks", or "I", call the relevant read tools IMMEDIATELY (get_stats, list_tasks, etc.) to gather data. Do NOT ask "who are you?" as your first response — that wastes a turn. Present the data you found, and if you still need to know who "me" is, ask ALONGSIDE the results. Example: user asks "How is the workload split between Alex and me?" → call get_stats FIRST (it returns ALL assignees' workload), present the full breakdown, THEN say "which family member are you so I can highlight your share?" Do NOT assume which member "me" is — but fetching data requires ZERO assumptions, so do it immediately. For WRITE operations ("assign to me", "I'll take it"), you MUST confirm which family member before executing the write, but still gather relevant read data while asking.
 2. **GROUND ANSWERS IN TOOL DATA ONLY.** Never include task names, dates, or details that don't appear in tool results. If a tool returns an empty array or zero results, say "no matching tasks found" — do NOT guess, fabricate, or extrapolate tasks that might exist. This applies even when the user expects a certain answer (e.g. "fun stuff coming up" → if no fun tasks exist, say so honestly). If results are truncated, make additional calls (with offset) to get the remaining data before answering.
 3. **"All active tasks" → use excludeStatus="completed".** When asked for everything someone is working on, what's on their plate, or tasks that aren't done, use excludeStatus="completed" to get all non-completed tasks regardless of specific status.
 4. **OVERDUE queries → overdue=true.** To find overdue tasks, use list_tasks with overdue=true. NEVER use dueBefore — it returns tasks of ALL statuses including completed.
@@ -90,7 +90,7 @@ Critical rules:
    - Check the "hint" field in list_tasks responses — it flags tasks that mention the person by name
    Only after 2-3 search strategies return nothing can you report "no matching tasks found". A single narrow query returning 0 is NOT sufficient for action requests.
 10. **Filters are AND-combined** in a single list_tasks call (e.g. assignee + excludeStatus + tag = all three must match). For OR logic (e.g. "assigned to Leo OR tagged kids"), make separate calls and merge results.
-11. **Use get_stats for counting/comparison questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "task distribution". It returns byStatus, overdue count, completionRate, and topAssignees without listing individual tasks. Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
+11. **Use get_stats for counting/comparison/workload questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "workload split", "should we rebalance?", "task distribution". It returns byStatus, overdue count, completionRate, topAssignees (total tasks per person), AND activeTasksByAssignee (per-person breakdown of non-completed tasks with todo/in_progress/overdue counts). Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
 12. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
 13. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?").
 14. **"Can we…", "Let's…", "I want to…" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead. **Exception: if the action requires a value the user hasn't provided** (e.g. "Can we reschedule these?" but no target date, "reassign these" but no target person), list the matching tasks and ask ONLY for the missing value — then execute immediately once you have it. This is asking for missing information, not asking for confirmation.
@@ -369,9 +369,11 @@ Returns paginated results (default limit=50, check "hasMore"). Fetch ALL pages b
 
 server.tool(
   'get_stats',
-  `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), and top assignees ranked by task count.
+  `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), top assignees ranked by total task count, AND activeTasksByAssignee (per-person breakdown of active/non-completed tasks with todo, in_progress, and overdue counts).
 
-★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "task count by person", "overall status". Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees.
+★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "workload split", "task count by person", "overall status", "how are tasks distributed?", "should we rebalance?". Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees and activeTasksByAssignee.
+
+⚠️ ALWAYS call this tool when the user asks about workload, even if they say "me" or "my tasks" and you don't know who they are. get_stats returns data for ALL assignees — no identity needed. Fetch first, clarify identity alongside the results.
 
 No parameters needed.`,
   {},
@@ -393,7 +395,7 @@ No parameters needed.`,
       ? `${(completed / tasks.length * 100).toFixed(1)}%`
       : '0%';
 
-    // Top assignees by task count
+    // Top assignees by total task count
     const assigneeCounts = {};
     for (const t of tasks) {
       if (t.assignee) {
@@ -405,6 +407,24 @@ No parameters needed.`,
       .slice(0, 5)
       .map(([name, count]) => ({ name, count }));
 
+    // Per-assignee active task breakdown (todo + in_progress) for workload questions
+    const activeByAssignee = {};
+    for (const t of tasks) {
+      if (t.assignee && t.status !== 'completed') {
+        if (!activeByAssignee[t.assignee]) {
+          activeByAssignee[t.assignee] = { total: 0, todo: 0, in_progress: 0, overdue: 0 };
+        }
+        activeByAssignee[t.assignee].total += 1;
+        activeByAssignee[t.assignee][t.status] = (activeByAssignee[t.assignee][t.status] || 0) + 1;
+        if (t.dueDate && t.dueDate < now) {
+          activeByAssignee[t.assignee].overdue += 1;
+        }
+      }
+    }
+
+    // Count unassigned active tasks
+    const unassignedActive = tasks.filter(t => !t.assignee && t.status !== 'completed').length;
+
     return {
       content: [{
         type: 'text',
@@ -414,6 +434,8 @@ No parameters needed.`,
           overdue,
           completionRate,
           topAssignees,
+          activeTasksByAssignee: activeByAssignee,
+          unassignedActiveTasks: unassignedActive,
         }, null, 2),
       }],
     };
