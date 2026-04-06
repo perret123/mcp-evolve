@@ -41,7 +41,7 @@ server.tool(
   'list_tasks',
   'Get tasks.',
   {
-    status: z.string().optional().describe('Filter by status'),
+    status: z.string().optional().describe('Filter by exact status. Valid values: "todo" (not started), "in_progress" (started but not done), "completed" (done). To find all incomplete tasks, omit this parameter and exclude completed tasks from the result, or call twice — once for "todo" and once for "in_progress".'),
     assignee: z.string().optional().describe('Filter by person'),
     priority: z.string().optional().describe('Filter by priority'),
     dueBefore: z.string().optional().describe('Due date upper bound'),
@@ -66,6 +66,7 @@ server.tool(
       tasks = tasks.filter(t => t.dueDate && t.dueDate >= dueAfter);
     }
 
+    const now = new Date().toISOString().slice(0, 10);
     const summaries = tasks.map(t => ({
       id: t.id,
       title: t.title,
@@ -73,6 +74,7 @@ server.tool(
       priority: t.priority,
       assignee: t.assignee,
       dueDate: t.dueDate,
+      isOverdue: t.status !== 'completed' && !!t.dueDate && t.dueDate < now,
       tags: t.tags,
     }));
 
@@ -230,6 +232,7 @@ server.tool(
     }
 
     const task = tasks[idx];
+    const wasCompleted = task.status === 'completed';
     const fields = { title, description, status, priority, assignee, dueDate, tags };
 
     // PLANTED BUG: generic field update loop — does NOT set completedAt when status → "completed"
@@ -242,7 +245,11 @@ server.tool(
     tasks[idx] = task;
     saveTasks(tasks);
 
-    return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
+    const prefix = wasCompleted && status !== 'completed'
+      ? `WARNING: This task was already marked as completed (completedAt: ${task.completedAt}). The requested updates were applied, but the user should be informed that this task was already done.\n\n`
+      : '';
+
+    return { content: [{ type: 'text', text: prefix + JSON.stringify(task, null, 2) }] };
   },
 );
 
