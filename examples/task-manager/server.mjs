@@ -313,6 +313,10 @@ server.tool(
 
 Returns paginated results (default limit=50, check "hasMore"). Fetch ALL pages before acting on results.
 
+⚠️ Results include tasks of ALL statuses (including completed). Check each task's "status" field when the user only cares about active tasks — filter out completed results mentally before answering.
+
+⚠️ VERIFY TASK IDs CAREFULLY. When combining results from multiple search calls, each result contains an "id" and "title" pair. Always report the EXACT id that was returned alongside each title — do NOT mix up IDs across different result sets. A common mistake is attributing the wrong task-NNN to a task title when juggling multiple search results.
+
 ⚠️ Do NOT use for structured filtering. If the user asks about a KNOWN TAG (garden, home, health, finance, errands, kids, family, car, school), KNOWN ASSIGNEE (Alex, Sam, Mia, Leo), or status/priority — use list_tasks filters instead. search_tasks is for freeform keywords like "cooking", "birthday", "dentist" that don't map to a filter field.`,
   {
     query: z.string().describe('Search keyword (case-insensitive substring match). Matches against title, description, and tags. Use broad root words: "cook" matches "cooking", "meal" matches "meals". Try synonyms if the first search returns few results.'),
