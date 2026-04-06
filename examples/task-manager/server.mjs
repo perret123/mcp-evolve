@@ -94,7 +94,7 @@ Critical rules:
 13. **Use get_stats for counting/comparison/workload questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "workload split", "should we rebalance?", "task distribution". It returns byStatus, overdue count, completionRate, topAssignees (total tasks per person), AND activeTasksByAssignee (per-person breakdown of non-completed tasks with todo/in_progress/overdue counts). Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
 14. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
 15. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?"). **Ambiguity: "the kids' tasks"** — if the user means tasks assigned to the children (Mia, Leo), use assignee filters (one call per child). If they mean kid-related tasks as a category, use tag='kids'. Context clues: "Mia and Leo's tasks" → assignee. "Kid-related stuff" → tag.
-16. **"Can we…", "Let's…", "I want to…" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead. **Exception: if the action requires a value the user hasn't provided** (e.g. "Can we reschedule these?" but no target date, "reassign these" but no target person), list the matching tasks and ask ONLY for the missing value — then execute immediately once you have it. This is asking for missing information, not asking for confirmation.
+16. **"Can we…", "Let's…", "I want to…", "Move X to Y" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead. **When the user specifies an exact target value** (e.g. "move to high priority", "set to medium"), use that EXACT value even if the current value seems higher/better. "Move to high" means set priority="high" — do NOT skip or ask for confirmation because the task is already "urgent". The user decides the right priority, not you. **Exception: if the action requires a value the user hasn't provided** (e.g. "Can we reschedule these?" but no target date, "reassign these" but no target person), list the matching tasks and ask ONLY for the missing value — then execute immediately once you have it. This is asking for missing information, not asking for confirmation.
 17. **"Unassigned tasks" → use list_tasks(unassigned=true).** To find tasks with no assignee, use the unassigned=true filter. Do NOT try to pass null or empty string to the assignee parameter.`,
 });
 
@@ -103,6 +103,8 @@ Critical rules:
 server.tool(
   'list_tasks',
   `List tasks with optional filters. Filters can be combined (e.g. assignee + excludeStatus + tag).
+
+⚠️ ACTION REQUESTS: If you are listing tasks to fulfill an action request (update, move, change priority, reschedule, delete, bump, set, reassign), you MUST call the appropriate write tool (update_task or delete_task) for EACH matching task after getting results. Listing alone does NOT complete the action — the task is not done until writes are executed. Even if a task's current value seems "better" than the requested value (e.g. task is "urgent" but user said "move to high"), you MUST still call update_task with the user's exact requested value.
 
 Tips:
 • Use excludeStatus="completed" for "all active/current/not-done tasks".
@@ -117,6 +119,8 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
 
 Response shape: { tasks: [{ id, title, description, status, priority, assignee, dueDate, tags, **isOverdue** }], total, offset, limit, hasMore, hint? }
 • Each task includes an **isOverdue** boolean — true when dueDate is past AND status ≠ completed. Use this to identify overdue items from ANY list_tasks call without needing a separate overdue=true call. Example: "what's on Sam's plate, anything overdue?" → one call: list_tasks({assignee:'Sam', excludeStatus:'completed'}), then check isOverdue on each result.
+
+⚠️ ANSWER ONLY FROM TOOL DATA: Your response must contain ONLY facts present in the returned fields (title, description, status, priority, assignee, dueDate, tags). Do NOT add narrative, backstory, seasonal context, or inferred details about tasks beyond what the tool returned.
 
 💡 "Someone's tasks" can mean tasks ASSIGNED to them OR tasks ABOUT them (mentioned in title/description but assigned to another family member). When assignee + other filters return 0 results, the response may include a "hint" field listing tasks that mention the person — follow the hint to broaden your search before concluding no tasks exist.
 
@@ -384,11 +388,11 @@ Response shape: { tasks: [{ id, title, description, status, priority, assignee, 
 
 server.tool(
   'get_stats',
-  `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), top assignees ranked by total task count, AND activeTasksByAssignee (per-person breakdown of active/non-completed tasks with todo, in_progress, overdue counts, priority breakdown, AND a compact task list with id/title/priority/dueDate/isOverdue).
+  `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), top assignees ranked by total task count, AND activeTasksByAssignee (per-person breakdown of active/non-completed tasks with todo, in_progress, overdue counts, priority breakdown, AND a compact task list with id/title/description/priority/dueDate/isOverdue).
 
 ★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "workload split", "task count by person", "overall status", "how are tasks distributed?", "should we rebalance?". Also use get_stats for HOW-TO and EXPLANATORY questions ("how do I add a task?", "how does this work?", "is it complicated?") — it grounds your explanation in real data (actual family members, task counts, system state) so you never fabricate details. Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees and activeTasksByAssignee WITH full task details.
 
-★ For rebalancing / workload comparison questions, get_stats is SUFFICIENT on its own — it includes each person's active tasks with titles, priorities, due dates, and overdue flags. You do NOT need additional list_tasks calls.
+★ For rebalancing / workload comparison questions, get_stats is SUFFICIENT on its own — it includes each person's active tasks with titles, descriptions, priorities, due dates, and overdue flags. You do NOT need additional list_tasks calls.
 
 ⚠️ ALWAYS call this tool when the user asks about workload, even if they say "me" or "my tasks" and you don't know who they are. get_stats returns data for ALL assignees — no identity needed. Fetch first, clarify identity alongside the results.
 
@@ -448,6 +452,7 @@ No parameters needed.`,
         entry.tasks.push({
           id: t.id,
           title: t.title,
+          description: t.description || null,
           priority: t.priority,
           dueDate: t.dueDate || null,
           status: t.status,
@@ -545,7 +550,7 @@ server.tool(
 2. If 0 results: DO NOT stop here for action requests. Try broader filters — drop assignee, drop tag, or use search_tasks. "Mia's school tasks" might be assigned to Alex but about Mia, or tagged differently than expected.
 3. Once you have task IDs, call update_task ONCE PER matching task. Do not skip the writes.
 
-⚠️ "Can we bump up…", "Let's change…", "I want to move…" are ACTION REQUESTS — you MUST execute the update_task calls. Do NOT just list tasks and ask for confirmation; the user already asked you to do it.
+⚠️ "Can we bump up…", "Let's change…", "I want to move…", "Move X to Y" are ACTION REQUESTS — you MUST execute the update_task calls. Do NOT just list tasks and ask for confirmation; the user already asked you to do it. When the user specifies an exact target value (e.g. "move to high priority", "set to medium", "change to todo"), set the field to EXACTLY that value — even if the current value seems "better" or "higher". For example, if a task is currently "urgent" and the user says "move to high priority", set priority to "high". Do NOT second-guess, warn about downgrades, or ask "it's already urgent, are you sure?" — the user stated what they want.
 
 💡 If the target value is missing (e.g. "reschedule these" without a new date, or "reassign" without specifying who), list the tasks and ask for the missing value only — then execute the updates immediately. This is NOT asking for confirmation; it's gathering a required parameter.
 
