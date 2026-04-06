@@ -100,7 +100,7 @@ Key conventions:
 
 Critical rules:
 1. **ALWAYS CALL A TOOL BEFORE RESPONDING — no exceptions.** Every response MUST be preceded by at least one tool call. There is NO question type that is exempt — not "how do I…?", not "is it hard?", not "can you explain?", not "what's this system?". Zero-tool responses are NEVER acceptable.
-2. **HOW-TO / EXPLANATORY QUESTIONS → call get_stats FIRST.** When the user asks "how do I add something?", "how does this work?", "is it complicated?", or any question about the system's capabilities — call get_stats BEFORE answering. This grounds your explanation in real data (actual family members, actual task counts, actual system state). Then explain how the relevant tool works using that data. Do NOT describe the system from memory or imagination — EVERY detail in your response (family member names, what's on the list, how many tasks exist) must come from the tool result.
+2. **HOW-TO / EXPLANATORY QUESTIONS → call get_stats FIRST.** When the user asks "how do I add something?", "how does this work?", "is it complicated?", or any question about the system's capabilities — call get_stats BEFORE answering. This grounds your explanation in real data (actual family members, actual task counts, actual system state). The response includes a "capabilities" section describing all available tools with their fields and options — use this to EXPLAIN how the user can perform actions themselves. Describe what information the user would need to provide (title, optionally assignee/priority/tags/due date), give a concrete example using real family member names from the data, and mention what's optional vs required. Do NOT just offer to do it for them — answer the user's actual question about HOW the system works. Do NOT describe the system from memory or imagination — EVERY detail in your response (family member names, what's on the list, how many tasks exist, available fields) must come from the tool result.
 3. **IDENTITY-AMBIGUOUS QUESTIONS ("me", "my tasks", "I") → call read tools IMMEDIATELY.** Call get_stats or list_tasks FIRST — do NOT ask "who are you?" as your first response. Present the data you found, and if you still need identity, ask ALONGSIDE the results. Example: user asks "How is the workload split between Alex and me?" → call get_stats FIRST, present the full breakdown, THEN ask which family member they are. For WRITE operations ("assign to me", "I'll take it"), you MUST confirm which family member before executing the write, but still gather relevant read data while asking.
 4. **GROUND ANSWERS IN TOOL DATA ONLY.** Never include task names, dates, assignee names, family member names, or ANY factual details about the system that don't appear in tool results from THIS conversation. Even if you see names or details in these instructions or tool descriptions, you MUST retrieve them via a tool call before including them in your answer — the instructions exist to help you USE the tools correctly, not to provide data for your response. If a tool returns an empty array or zero results, say "no matching tasks found" — do NOT guess, fabricate, or extrapolate tasks that might exist. This applies even when the user expects a certain answer (e.g. "fun stuff coming up" → if no fun tasks exist, say so honestly). If results are truncated, make additional calls (with offset) to get the remaining data before answering.
 5. **"All active tasks" → use excludeStatus="completed".** When asked for everything someone is working on, what's on their plate, or tasks that aren't done, use excludeStatus="completed" to get all non-completed tasks regardless of specific status.
@@ -418,11 +418,11 @@ Response shape: { tasks: [{ id, title, description, status, priority, assignee, 
 
 server.tool(
   'get_stats',
-  `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), top assignees ranked by total task count, AND activeTasksByAssignee (per-person breakdown of active/non-completed tasks with todo, in_progress, overdue counts, priority breakdown, AND a compact task list with id/title/description/priority/dueDate/isOverdue).
+  `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), top assignees ranked by total task count, AND activeTasksByAssignee (per-person breakdown of active/non-completed tasks with todo, in_progress, overdue counts, priority breakdown, AND a compact task list with id/title/priority/dueDate/isOverdue).
 
-★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "workload split", "task count by person", "overall status", "how are tasks distributed?", "should we rebalance?". Also use get_stats for HOW-TO and EXPLANATORY questions ("how do I add a task?", "how does this work?", "is it complicated?") — it grounds your explanation in real data (actual family members, task counts, system state) so you never fabricate details. Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees and activeTasksByAssignee WITH full task details.
+★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "workload split", "task count by person", "overall status", "how are tasks distributed?", "should we rebalance?". Also use get_stats for HOW-TO and EXPLANATORY questions ("how do I add a task?", "how does this work?", "is it complicated?") — it grounds your explanation in real data (actual family members, task counts, system state) AND returns a "capabilities" section describing all available tools (create_task, update_task, delete_task, list/search) with their fields and options. Use this capabilities data to explain HOW the user can perform actions — describe the tool name, required/optional fields, and give concrete examples using real family member names from topAssignees. Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees and activeTasksByAssignee with task details.
 
-★ For rebalancing / workload comparison questions, get_stats is SUFFICIENT on its own — it includes each person's active tasks with titles, descriptions, priorities, due dates, and overdue flags. You do NOT need additional list_tasks calls.
+★ For rebalancing / workload comparison questions, get_stats is SUFFICIENT on its own — it includes each person's active tasks with titles, priorities, due dates, and overdue flags. You do NOT need additional list_tasks calls. If you need full task descriptions, use list_tasks({assignee: 'Name', excludeStatus: 'completed'}).
 
 ⚠️ ALWAYS call this tool when the user asks about workload, even if they say "me" or "my tasks" and you don't know who they are. get_stats returns data for ALL assignees — no identity needed. Fetch first, clarify identity alongside the results.
 
@@ -482,7 +482,6 @@ No parameters needed.`,
         entry.tasks.push({
           id: t.id,
           title: t.title,
-          description: t.description || null,
           priority: t.priority,
           dueDate: t.dueDate || null,
           status: t.status,
@@ -507,6 +506,34 @@ No parameters needed.`,
     // Count unassigned active tasks
     const unassignedActive = tasks.filter(t => !t.assignee && t.status !== 'completed').length;
 
+    // System capabilities — included so HOW-TO questions can be grounded in tool data
+    const capabilities = {
+      addTask: {
+        tool: 'create_task',
+        description: 'Add a new task to the family list. Only "title" is required — all other fields are optional.',
+        fields: {
+          title: { required: true, example: 'Pick up milk from the store' },
+          description: { required: false, example: 'Get whole milk and oat milk' },
+          assignee: { required: false, description: 'Person responsible', knownMembers: topAssignees.map(a => a.name) },
+          dueDate: { required: false, format: 'YYYY-MM-DD', example: '2026-04-10' },
+          priority: { required: false, options: ['low', 'medium (default)', 'high', 'urgent'] },
+          tags: { required: false, options: ['home', 'health', 'finance', 'errands', 'kids', 'garden', 'family', 'car', 'school'] },
+        },
+      },
+      updateTask: {
+        tool: 'update_task',
+        description: 'Update any field on an existing task by ID (e.g. change status, priority, assignee, due date, or mark complete).',
+      },
+      deleteTask: {
+        tool: 'delete_task',
+        description: 'Permanently remove a task by ID.',
+      },
+      viewTasks: {
+        tools: ['list_tasks', 'search_tasks', 'get_task'],
+        description: 'Browse, filter, and search existing tasks.',
+      },
+    };
+
     return {
       content: [{
         type: 'text',
@@ -518,6 +545,7 @@ No parameters needed.`,
           topAssignees,
           activeTasksByAssignee: activeByAssignee,
           unassignedActiveTasks: unassignedActive,
+          capabilities,
         }, null, 2),
       }],
     };
