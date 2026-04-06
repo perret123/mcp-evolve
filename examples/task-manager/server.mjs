@@ -2,7 +2,7 @@
 
 /**
  * Task Manager MCP server.
- * Family to-do list for a household.
+ * Family to-do list for Alex's household.
  *
  * Read:  list_tasks, get_task, search_tasks, get_stats
  * Write: create_task, update_task, delete_task
@@ -15,65 +15,6 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const TASKS_PATH = join(new URL('.', import.meta.url).pathname, 'tasks.json');
-
-/** Priority ranking — higher number = higher priority. */
-const PRIORITY_RANK = { urgent: 4, high: 3, medium: 2, low: 1 };
-
-/**
- * Normalize status strings to canonical values used in the data store.
- * Canonical statuses: "todo", "in_progress", "completed".
- * Accepts common synonyms and formatting variations.
- */
-function normalizeStatus(status) {
-  if (status === undefined) return undefined;
-  const s = status.toLowerCase().trim();
-  const map = {
-    'todo': 'todo',
-    'to_do': 'todo',
-    'to-do': 'todo',
-    'pending': 'todo',
-    'open': 'todo',
-    'not_started': 'todo',
-    'not-started': 'todo',
-    'in_progress': 'in_progress',
-    'in-progress': 'in_progress',
-    'in progress': 'in_progress',
-    'inprogress': 'in_progress',
-    'active': 'in_progress',
-    'started': 'in_progress',
-    'doing': 'in_progress',
-    'completed': 'completed',
-    'done': 'completed',
-    'finished': 'completed',
-    'complete': 'completed',
-  };
-  return map[s] ?? status;  // pass through unknown values as-is
-}
-
-/** Canonical tags used in the data store. */
-const KNOWN_TAGS = ['home', 'health', 'finance', 'errands', 'kids', 'garden', 'family', 'car', 'school'];
-
-/**
- * Normalize tag strings to canonical values used in the data store.
- * Handles case-insensitivity and common variations (e.g. "gardening" → "garden",
- * "schools" → "school", "Cars" → "car").
- */
-function normalizeTag(tag) {
-  if (tag === undefined) return undefined;
-  const t = tag.toLowerCase().trim();
-  // Exact match first
-  if (KNOWN_TAGS.includes(t)) return t;
-  // Check if input starts with a known tag (handles "gardening" → "garden",
-  // "schools" → "school", "errands" → "errands", "financial" → "finance", etc.)
-  for (const known of KNOWN_TAGS) {
-    if (t.startsWith(known)) return known;
-  }
-  // Check if a known tag starts with the input (handles abbreviations)
-  for (const known of KNOWN_TAGS) {
-    if (known.startsWith(t) && t.length >= 3) return known;
-  }
-  return t;  // pass through unknown values as-is
-}
 
 function loadTasks() {
   try {
@@ -91,111 +32,32 @@ const server = new McpServer({
   name: 'task-manager',
   version: '0.1.0',
 }, {
-  instructions: `A family task manager. Call get_stats or list_tasks to discover who the family members are, what tasks exist, and how the system is set up. Do NOT describe the family, its members, or the system's contents without first retrieving data from a tool.
-
-Key conventions:
-- Statuses: "todo", "in_progress", "completed" (aliases like "pending", "done" are accepted but always normalized internally). These are the ONLY statuses — there are no "blocked", "waiting", or "on_hold" statuses.
-- Priorities (ranked low → urgent): "low" < "medium" < "high" < "urgent". list_tasks results are sorted highest priority first.
-- Tags: home, health, finance, errands, kids, garden, family, car, school.
-
-Critical rules:
-1. **ALWAYS CALL A TOOL BEFORE RESPONDING — no exceptions.** Every response MUST be preceded by at least one tool call. There is NO question type that is exempt — not "how do I…?", not "is it hard?", not "can you explain?", not "what's this system?". Zero-tool responses are NEVER acceptable.
-2. **HOW-TO / EXPLANATORY QUESTIONS → call get_stats FIRST.** When the user asks "how do I add something?", "how does this work?", "is it complicated?", or any question about the system's capabilities — call get_stats BEFORE answering. This grounds your explanation in real data (actual family members, actual task counts, actual system state). The response includes a "capabilities" section describing all available tools with their fields and options — use this to EXPLAIN how the user can perform actions themselves. Describe what information the user would need to provide (title, optionally assignee/priority/tags/due date), give a concrete example using real family member names from the data, and mention what's optional vs required. Do NOT just offer to do it for them — answer the user's actual question about HOW the system works. Do NOT describe the system from memory or imagination — EVERY detail in your response (family member names, what's on the list, how many tasks exist, available fields) must come from the tool result.
-3. **IDENTITY-AMBIGUOUS QUESTIONS ("me", "my tasks", "I") → call read tools IMMEDIATELY.** Call get_stats or list_tasks FIRST — do NOT ask "who are you?" as your first response. Present the data you found, and if you still need identity, ask ALONGSIDE the results. Example: user asks "How is the workload split between Alex and me?" → call get_stats FIRST, present the full breakdown, THEN ask which family member they are. For WRITE operations ("assign to me", "I'll take it"), you MUST confirm which family member before executing the write, but still gather relevant read data while asking.
-4. **GROUND ANSWERS IN TOOL DATA ONLY.** Never include task names, dates, assignee names, family member names, or ANY factual details about the system that don't appear in tool results from THIS conversation. Even if you see names or details in these instructions or tool descriptions, you MUST retrieve them via a tool call before including them in your answer — the instructions exist to help you USE the tools correctly, not to provide data for your response. If a tool returns an empty array or zero results, say "no matching tasks found" — do NOT guess, fabricate, or extrapolate tasks that might exist. This applies even when the user expects a certain answer (e.g. "fun stuff coming up" → if no fun tasks exist, say so honestly). If results are truncated, make additional calls (with offset) to get the remaining data before answering.
-5. **"All active tasks" → use excludeStatus="completed".** When asked for everything someone is working on, what's on their plate, or tasks that aren't done, use excludeStatus="completed" to get all non-completed tasks regardless of specific status.
-6. **OVERDUE queries → overdue=true.** To find overdue tasks, use list_tasks with overdue=true. Do NOT use dueBefore for overdue queries — it returns tasks of ALL statuses including completed. However, dueBefore IS the correct filter for TIME-WINDOW queries ("next two weeks", "coming up this month", "upcoming") — just combine it with excludeStatus="completed" to exclude done tasks. Example: "school tasks in the next two weeks" → list_tasks({tag:'school', excludeStatus:'completed', dueBefore:'2026-04-20'}). Always scope temporal queries with dueBefore/dueAfter — without a date filter, you'll return ALL active tasks regardless of how far out they're due.
-7. **Tag filtering → list_tasks(tag=...), NOT search_tasks.** Known tags are: home, health, finance, errands, kids, garden, family, car, school. If the user asks about any of these, use list_tasks with the tag filter — do NOT call search_tasks. search_tasks is ONLY for freeform keyword lookups when you don't know which field to filter by (e.g. "cooking", "birthday", or other words that aren't known tags/assignees/statuses).
-8. **search_tasks is substring-based.** "cook" matches "cooking", "meal" matches "meals". Start with a broad root word. If few/no results, try synonyms — e.g. "cook" then "meal" then "food".
-9. **Batch updates → update ALL matching items.** When asked to update "all tasks that match X", first list ALL matches, then update_task once for EACH. The task is NOT done until the write calls are made.
-10. **Ties → acknowledge and explain.** When asked for "the highest priority" and multiple tasks tie, say so.
-11. **ACTION REQUESTS require thorough search before giving up.** When asked to update/move/delete tasks and your first query returns 0 results, you MUST broaden the search before concluding no tasks exist:
-   - Drop the assignee filter (tasks "about" Mia may be assigned to Alex)
-   - Drop the tag filter (school tasks might not be tagged "school")
-   - Try search_tasks with the person's name or keyword
-   - Check the "hint" field in list_tasks responses — it flags tasks that mention the person by name
-   Only after 2-3 search strategies return nothing can you report "no matching tasks found". A single narrow query returning 0 is NOT sufficient for action requests.
-12. **Filters are AND-combined** in a single list_tasks call (e.g. assignee + excludeStatus + tag = all three must match). For OR logic (e.g. "assigned to Leo OR tagged kids"), make separate calls and merge results.
-13. **Use get_stats for counting/comparison/workload questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "workload split", "should we rebalance?", "task distribution". It returns byStatus, overdue count, completionRate, topAssignees (total tasks per person), AND activeTasksByAssignee (per-person breakdown of non-completed tasks with todo/in_progress/overdue counts). Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
-14. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
-15. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?"). **Ambiguity: "the kids' tasks"** — if the user means tasks assigned to the children (Mia, Leo), use assignee filters (one call per child). If they mean kid-related tasks as a category, use tag='kids'. Context clues: "Mia and Leo's tasks" → assignee. "Kid-related stuff" → tag.
-16. **"Can we…", "Let's…", "I want to…", "Move X to Y", "I finished X", "I did X", "Check off X" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", "I want to reassign these", "I finished my homework", "I did X already", or "check off X for me" — they are asking you to DO IT. Specifically: **"I finished X" / "I did X" / "check it off" = call update_task({id, status: 'completed'}) IMMEDIATELY after finding the task.** Do NOT ask "shall I mark it done?" when the user already said they finished it — that IS the instruction to mark it done. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead. **When the user specifies an exact target value** (e.g. "move to high priority", "set to medium"), use that EXACT value even if the current value seems higher/better. "Move to high" means set priority="high" — do NOT skip or ask for confirmation because the task is already "urgent". The user decides the right priority, not you. **Exception: if the action requires a value the user hasn't provided** (e.g. "Can we reschedule these?" but no target date, "reassign these" but no target person), list the matching tasks and ask ONLY for the missing value — then execute immediately once you have it. This is asking for missing information, not asking for confirmation.
-17. **"Unassigned tasks" → use list_tasks(unassigned=true).** To find tasks with no assignee, use the unassigned=true filter. Do NOT try to pass null or empty string to the assignee parameter.
-18. **EXECUTE CORRECTIONS IN ORDER — never skip steps.** When a user gives a sequence of instructions with a correction or undo ("check off X — actually wait, undo that"), you MUST execute EACH step as a SEPARATE tool call in sequential order. First execute the original action (e.g. mark completed), THEN execute the correction (e.g. revert to todo). Do NOT "optimize" by skipping the first step because the second step undoes it. The intermediate state must be recorded — it sets timestamps like completedAt and maintains proper task history. Example: "check off grocery shopping — actually no, undo that, and add a family tag" = THREE calls: (1) update_task(status:'completed'), (2) update_task(status:'todo'), (3) update_task(tags:[...,'family']).`,
+  instructions: 'A family task manager for Alex\'s household. Manage to-do items for the whole family.',
 });
 
 // --- Read Tools ---
 
 server.tool(
   'list_tasks',
-  `List tasks with optional filters. Filters can be combined (e.g. assignee + excludeStatus + tag).
-
-⚠️ ACTION REQUESTS: If you are listing tasks to fulfill an action request (update, move, change priority, reschedule, delete, bump, set, reassign, mark complete), you MUST call the appropriate write tool (update_task or delete_task) for EACH matching task after getting results. Listing alone does NOT complete the action — the task is not done until writes are executed. Even if a task's current value seems "better" than the requested value (e.g. task is "urgent" but user said "move to high"), you MUST still call update_task with the user's exact requested value.
-
-⚠️ "I finished X" / "I did X" / "check off X" = ACTION REQUEST to mark complete. When the user says they finished a task, find it via list_tasks or search_tasks, then IMMEDIATELY call update_task({id, status: 'completed'}). Do NOT ask for confirmation — the user already told you they finished it.
-
-Tips:
-• Use excludeStatus="completed" for "all active/current/not-done tasks".
-• Use overdue=true for overdue tasks (not dueBefore, which includes completed).
-• For TIME-WINDOW queries ("next two weeks", "coming up", "this month"), ALWAYS use dueBefore (and/or dueAfter) combined with excludeStatus="completed". Without date filters, you'll return ALL active tasks regardless of how far in the future they're due. Example: "upcoming school tasks" with today=2026-04-06 → list_tasks({tag:'school', excludeStatus:'completed', dueBefore:'2026-04-20'}).
-• Use unassigned=true for tasks with NO assignee. Example: "unassigned urgent tasks" → list_tasks({unassigned: true, priority: 'urgent', excludeStatus: 'completed'}).
-• Use tag filter for known tags (garden, school, etc.) — more reliable than search_tasks.
-• For CATEGORY queries ("kids' school tasks", "garden stuff"), use the TAG filter — NOT the assignee filter. Tasks about kids/school/garden may be assigned to ANY family member. Example: "kids' school tasks" → list_tasks({tag: 'school', excludeStatus: 'completed'}) finds ALL school tasks regardless of who's assigned.
-
-⚠️ Filters are AND-combined — every specified filter must match. For OR logic (e.g. "tasks assigned to Leo OR tagged kids"), make separate calls: one list_tasks({assignee:'Leo'}) and one list_tasks({tag:'kids'}), then merge the results.
-
-Results sorted by priority (urgent→low), then due date. Paginated (default limit=50, check "hasMore").
-
-Response shape: { tasks: [{ id, title, description, status, priority, assignee, dueDate, tags, **isOverdue** }], total, offset, limit, hasMore, hint? }
-• Each task includes an **isOverdue** boolean — true when dueDate is past AND status ≠ completed. Use this to identify overdue items from ANY list_tasks call without needing a separate overdue=true call. Example: "what's on Sam's plate, anything overdue?" → one call: list_tasks({assignee:'Sam', excludeStatus:'completed'}), then check isOverdue on each result.
-
-⚠️ ANSWER ONLY FROM TOOL DATA: Your response must contain ONLY facts present in the returned fields (title, description, status, priority, assignee, dueDate, tags). Do NOT add narrative, backstory, seasonal context, or inferred details about tasks beyond what the tool returned.
-
-💡 "Someone's tasks" can mean tasks ASSIGNED to them OR tasks ABOUT them (mentioned in title/description but assigned to another family member). When assignee + other filters return 0 results, the response may include a "hint" field listing tasks that mention the person — follow the hint to broaden your search before concluding no tasks exist.
-
-💡 "The kids' tasks" has TWO different meanings — determine which the user intends:
-  (A) Tasks ON the children's plate — chores/responsibilities ASSIGNED TO Mia or Leo (their own to-dos like mowing the lawn, returning library books). Use assignee filters. Appropriate when: "What's on Leo's plate?", "Does Mia have chores?"
-  (B) Tasks ABOUT/FOR the children — activities, appointments, events, errands involving the kids as beneficiaries, often assigned to adult caretakers like Sam or Alex (e.g. "Plan Leo's birthday party", "Help Mia with science project", "Schedule dentist for Mia"). Use tag='kids' for the category, or search_tasks with the child's name for tasks mentioning them. Appropriate when: "Anything for the kids?", "What's coming up for Mia?", "Can I help with something for the little ones?"
-  ⚠️ When a NON-household-member (grandparent, visitor) asks about "the kids", they almost always mean (B) — tasks about/for the children, NOT the children's chore list. Do NOT present a child's assigned chore (e.g. "Mow the lawn" assigned to Leo) as a "kid activity" or something someone could "help with for the kids."`,
+  'Get tasks.',
   {
-    overdue: z.boolean().optional().describe('**Use this for overdue queries.** Set to true to return ONLY tasks that are past due AND not completed. This is the correct way to answer "what is overdue?" — do NOT use dueBefore for overdue queries.'),
-    status: z.string().optional().describe('Filter by status: "todo", "in_progress", or "completed". Aliases accepted (e.g. "pending"→todo, "done"→completed).'),
-    excludeStatus: z.string().optional().describe('Exclude a status. Use excludeStatus="completed" for all active/non-done tasks. Aliases accepted.'),
-    unassigned: z.boolean().optional().describe('Set to true to return ONLY tasks with no assignee. Cannot be combined with "assignee" — use one or the other.'),
-    assignee: z.string().optional().describe('Filter by person assigned. Case-sensitive. Works with ANY name — not limited to known family members. Always use this filter (not search_tasks) when the user asks for tasks "assigned to [name]", even if the name is unfamiliar. To find tasks with NO assignee, use unassigned=true instead.'),
-    priority: z.string().optional().describe('Filter by priority: "low", "medium", "high", or "urgent". Single-value — for multiple priorities, make one call per priority.'),
-    tag: z.string().optional().describe('Filter by tag: home, health, finance, errands, kids, garden, family, car, school. Case-insensitive, common variations accepted (e.g. "gardening" → "garden", "schools" → "school").'),
-    dueBefore: z.string().optional().describe('Due date upper bound (YYYY-MM-DD), inclusive. Use this for TIME-WINDOW queries like "next two weeks", "this month", "coming up soon" — combine with excludeStatus="completed" to get only active tasks within the window. Example: tasks due in the next 2 weeks from April 6 → dueBefore="2026-04-20" + excludeStatus="completed". Note: includes all statuses by default, so NOT suitable for overdue queries — use overdue=true for those.'),
-    dueAfter: z.string().optional().describe('Due date lower bound (YYYY-MM-DD). Returns tasks of ALL statuses including completed.'),
-    limit: z.number().optional().describe('Max results per page (default 50). Response includes "hasMore" boolean — if true, increase offset to get next page.'),
-    offset: z.number().optional().describe('Skip N tasks for pagination (default 0). Use when "hasMore" is true in a previous response.'),
+    status: z.string().optional().describe('Filter by status'),
+    assignee: z.string().optional().describe('Filter by person'),
+    priority: z.string().optional().describe('Filter by priority'),
+    dueBefore: z.string().optional().describe('Due date upper bound'),
+    dueAfter: z.string().optional().describe('Due date lower bound'),
   },
-  async ({ status, excludeStatus, assignee, unassigned, priority, tag, dueBefore, dueAfter, overdue, limit, offset }) => {
+  async ({ status, assignee, priority, dueBefore, dueAfter }) => {
     let tasks = loadTasks();
-    const normalizedStatus = normalizeStatus(status);
-    const normalizedExcludeStatus = normalizeStatus(excludeStatus);
-    const normalizedTag = normalizeTag(tag);
 
-    if (overdue === true) {
-      const now = new Date().toISOString().slice(0, 10);
-      tasks = tasks.filter(t => t.status !== 'completed' && t.dueDate && t.dueDate < now);
+    if (status !== undefined) {
+      tasks = tasks.filter(t => t.status === status);
     }
-    if (normalizedStatus !== undefined) {
-      tasks = tasks.filter(t => t.status === normalizedStatus);
-    }
-    if (normalizedExcludeStatus !== undefined) {
-      tasks = tasks.filter(t => t.status !== normalizedExcludeStatus);
-    }
-    if (unassigned === true) {
-      tasks = tasks.filter(t => !t.assignee);
-    } else if (assignee !== undefined) {
+    if (assignee !== undefined) {
       tasks = tasks.filter(t => t.assignee === assignee);
     }
     if (priority !== undefined) {
       tasks = tasks.filter(t => t.priority === priority);
-    }
-    if (normalizedTag !== undefined) {
-      tasks = tasks.filter(t => t.tags && t.tags.includes(normalizedTag));
     }
     if (dueBefore !== undefined) {
       tasks = tasks.filter(t => t.dueDate && t.dueDate <= dueBefore);
@@ -204,207 +66,45 @@ Response shape: { tasks: [{ id, title, description, status, priority, assignee, 
       tasks = tasks.filter(t => t.dueDate && t.dueDate >= dueAfter);
     }
 
-    // Sort by priority (urgent first) then by due date (earliest first) for deterministic ordering.
-    tasks.sort((a, b) => {
-      const pa = PRIORITY_RANK[a.priority] ?? 0;
-      const pb = PRIORITY_RANK[b.priority] ?? 0;
-      if (pb !== pa) return pb - pa;               // higher priority first
-      // secondary: earliest due date first (null dates sort last)
-      if (a.dueDate && b.dueDate) return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0;
-      if (a.dueDate) return -1;
-      if (b.dueDate) return 1;
-      return 0;
-    });
-
-    const totalFiltered = tasks.length;
-    const effectiveOffset = offset ?? 0;
-    const effectiveLimit = limit ?? 50;
-    tasks = tasks.slice(effectiveOffset, effectiveOffset + effectiveLimit);
-
-    const now = new Date().toISOString().slice(0, 10);
     const summaries = tasks.map(t => ({
       id: t.id,
       title: t.title,
-      description: t.description || null,
       status: t.status,
       priority: t.priority,
       assignee: t.assignee,
       dueDate: t.dueDate,
       tags: t.tags,
-      isOverdue: t.status !== 'completed' && !!t.dueDate && t.dueDate < now,
     }));
 
-    const result = {
-      tasks: summaries,
-      total: totalFiltered,
-      offset: effectiveOffset,
-      limit: effectiveLimit,
-      hasMore: effectiveOffset + effectiveLimit < totalFiltered,
-    };
-
-    // When an assignee filter is used with other filters, check if there are
-    // additional matching tasks assigned to other people — "kids' school tasks"
-    // may be assigned to any family member, not just the kids themselves.
-    if (assignee !== undefined) {
-      const hasOtherFilters = normalizedTag !== undefined || normalizedStatus !== undefined || normalizedExcludeStatus !== undefined || priority !== undefined || dueBefore !== undefined || dueAfter !== undefined || overdue === true;
-      if (hasOtherFilters) {
-        // Re-apply all non-assignee filters to find the full set of matching tasks
-        const allTasks = loadTasks();
-        let broader = allTasks;
-        if (overdue === true) {
-          const now = new Date().toISOString().slice(0, 10);
-          broader = broader.filter(t => t.status !== 'completed' && t.dueDate && t.dueDate < now);
-        }
-        if (normalizedStatus !== undefined) broader = broader.filter(t => t.status === normalizedStatus);
-        if (normalizedExcludeStatus !== undefined) broader = broader.filter(t => t.status !== normalizedExcludeStatus);
-        if (priority !== undefined) broader = broader.filter(t => t.priority === priority);
-        if (normalizedTag !== undefined) broader = broader.filter(t => t.tags && t.tags.includes(normalizedTag));
-        if (dueBefore !== undefined) broader = broader.filter(t => t.dueDate && t.dueDate <= dueBefore);
-        if (dueAfter !== undefined) broader = broader.filter(t => t.dueDate && t.dueDate >= dueAfter);
-
-        const otherAssigneeTasks = broader.filter(t => t.assignee !== assignee);
-
-        if (totalFiltered === 0) {
-          // Zero results with assignee filter — check for name mentions and guide broadening
-          const nameLower = assignee.toLowerCase();
-          const mentionMatches = broader.filter(t =>
-            t.assignee !== assignee && (
-              t.title.toLowerCase().includes(nameLower) ||
-              (t.description && t.description.toLowerCase().includes(nameLower))
-            )
-          );
-          if (mentionMatches.length > 0) {
-            result.hint = `No tasks are directly ASSIGNED to "${assignee}" matching these filters, but ${mentionMatches.length} task(s) mention "${assignee}" in their title/description: ${mentionMatches.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee})`).join(', ')}. The user may be referring to these — try removing the assignee filter or using search_tasks("${assignee}") to find tasks ABOUT this person.`;
-          } else {
-            // No mention-matches either — check if broader set has tasks at all
-            // to give the LLM a more definitive answer faster.
-            const filterDesc = [
-              normalizedTag && `tag="${normalizedTag}"`,
-              normalizedStatus && `status="${normalizedStatus}"`,
-              normalizedExcludeStatus && `excludeStatus="${normalizedExcludeStatus}"`,
-              priority && `priority="${priority}"`,
-            ].filter(Boolean).join(' + ');
-
-            if (broader.length > 0) {
-              // There ARE tasks matching the non-assignee filters, but none mention this person
-              const otherAssignees = [...new Set(broader.map(t => t.assignee || 'unassigned'))].join(', ');
-              result.hint = `Zero results for assignee="${assignee}" with ${filterDesc}. ${broader.length} task(s) match the ${filterDesc} filter(s) but are assigned to OTHER people (${otherAssignees}) and NONE mention "${assignee}" in their title/description. This strongly suggests no ${normalizedTag || 'matching'} tasks exist for "${assignee}". You may still try search_tasks("${assignee}") as a final check, but it is likely that no matching tasks exist for this person.`;
-            } else {
-              result.hint = `Zero results for assignee="${assignee}" with ${filterDesc}, and zero tasks match ${filterDesc} across ALL assignees either. No ${normalizedTag || 'matching'} tasks exist in the system at all. You can confidently report "no matching tasks found".`;
-            }
-          }
-        } else if (otherAssigneeTasks.length > 0) {
-          // Some results found, but MORE matching tasks exist under other assignees.
-          // Only mention tasks that actually reference the person by name in title/description —
-          // a random task under the same tag assigned to someone else is NOT necessarily "their" task.
-          const nameLower = assignee.toLowerCase();
-          const mentionTasks = otherAssigneeTasks.filter(t =>
-            t.title.toLowerCase().includes(nameLower) ||
-            (t.description && t.description.toLowerCase().includes(nameLower))
-          );
-          if (mentionTasks.length > 0) {
-            result.hint = `⚠️ CRITICAL DISTINCTION: The ${totalFiltered} task(s) above are chores/responsibilities ASSIGNED TO "${assignee}" (${assignee}'s own to-do items). They are NOT necessarily tasks "about" or "for" ${assignee} as a beneficiary. Additionally, ${mentionTasks.length} other task(s) mention "${assignee}" by name but are assigned to SOMEONE ELSE: ${mentionTasks.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee || 'unassigned'})`).join(', ')}. If the user is asking about tasks ABOUT/FOR "${assignee}" (e.g. "anything for the kids?", "what could I help with for ${assignee}?"), those mention-tasks are likely MORE relevant than the directly-assigned chores above.`;
-          }
-        }
-      } else {
-        // Assignee-only query (no other filters). Provide context about tasks that
-        // MENTION this person by name but are assigned to other family members, along
-        // with their tag distribution. This helps the LLM answer topic-specific
-        // questions like "Leo mentioned something about school" — Leo's directly
-        // assigned tasks may all be garden-related, but school tasks mentioning Leo
-        // exist under other assignees.
-        const allTasks = loadTasks();
-        const nameLower = assignee.toLowerCase();
-        // Only include NON-COMPLETED tasks that mention the person — completed
-        // historical tasks are noise that overwhelms the main task list and can
-        // cause the LLM to lose track of the directly-assigned tasks above.
-        const mentionedElsewhere = allTasks.filter(t =>
-          t.assignee !== assignee && t.status !== 'completed' && (
-            t.title.toLowerCase().includes(nameLower) ||
-            (t.description && t.description.toLowerCase().includes(nameLower))
-          )
-        );
-
-        if (mentionedElsewhere.length > 0) {
-          // Include full task details for mentioned-elsewhere tasks so the LLM
-          // doesn't need follow-up calls to discover tasks ABOUT this person.
-          const mentionedDetails = mentionedElsewhere.slice(0, 10).map(t =>
-            `${t.id} "${t.title}" (assigned to ${t.assignee || 'unassigned'}, status=${t.status}, priority=${t.priority}, due=${t.dueDate || 'none'}, tags=[${(t.tags || []).join(', ')}])`
-          ).join('; ');
-
-          result.hint = `⚠️ CRITICAL DISTINCTION: The ${totalFiltered} task(s) in the results above are chores/responsibilities ASSIGNED TO "${assignee}" — these are ${assignee}'s OWN to-do items (things ${assignee} is responsible for doing, like household chores). They are NOT tasks "about" or "for" ${assignee} as a beneficiary. Do NOT present these assigned chores as "things for ${assignee}" or "kid activities" — they are just ${assignee}'s workload. If the user is asking about tasks ABOUT/FOR ${assignee} (e.g. "anything for the kids?", "what's coming up for ${assignee}?", "what could I help with regarding ${assignee}?"), use the following ${mentionedElsewhere.length} task(s) instead — these are tasks where ${assignee} is the SUBJECT/BENEFICIARY, assigned to other family members who are handling them: ${mentionedDetails}.${mentionedElsewhere.length > 10 ? ` (showing first 10 of ${mentionedElsewhere.length} — use search_tasks("${assignee}") for the full list.)` : ''} Also consider list_tasks({tag: 'kids'}) for all kid-related activities regardless of which child they mention.`;
-        }
-      }
-    }
-
-    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    return { content: [{ type: 'text', text: JSON.stringify(summaries, null, 2) }] };
   },
 );
 
 server.tool(
   'get_task',
-  'Get full details of a single task by its ID (e.g. "task-001"). Returns all fields including createdAt and completedAt. Note: list_tasks and search_tasks already include descriptions — use get_task only when you need createdAt/completedAt timestamps.',
-  { id: z.string().describe('Task ID, e.g. "task-042". Format: "task-NNN".') },
+  'Get a single task by its ID.',
+  { id: z.string().describe('Task ID') },
   async ({ id }) => {
     const tasks = loadTasks();
     const task = tasks.find(t => t.id === id);
-    if (!task) {
-      return { content: [{ type: 'text', text: `Error: No task found with ID "${id}". Use list_tasks to find valid task IDs.` }], isError: true };
-    }
-    return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
+    // PLANTED SLOPPINESS: returns null instead of an error message when task not found
+    return { content: [{ type: 'text', text: JSON.stringify(task || null) }] };
   },
 );
 
 server.tool(
   'search_tasks',
-  `Freeform substring search across task titles, descriptions, and tags. Case-insensitive — "cook" matches "cooking class" and "cookbook". Accepts ONE keyword per call. When the user mentions multiple distinct terms (e.g. "cooking or meals"), make one call per term. Try synonyms if the first search returns few results (e.g. "cook" → "meal" → "food").
-
-Returns paginated results (default limit=50, check "hasMore"). Fetch ALL pages before acting on results.
-
-Response shape: { tasks: [{ id, title, description, status, priority, assignee, dueDate, tags }], total, offset, limit, hasMore }
-⚠️ Unlike list_tasks, search_tasks does NOT include an "isOverdue" field. To check if a search result is overdue, inspect its status (≠ completed) and dueDate (< today) manually.
-
-⚠️ Results include tasks of ALL statuses (including completed). Check each task's "status" field when the user only cares about active tasks — filter out completed results mentally before answering.
-
-⚠️ VERIFY TASK IDs CAREFULLY. When combining results from multiple search calls, each result contains an "id" and "title" pair. Always report the EXACT id that was returned alongside each title — do NOT mix up IDs across different result sets. A common mistake is attributing the wrong task-NNN to a task title when juggling multiple search results.
-
-⚠️ Do NOT use for structured filtering. If the user asks about tasks ASSIGNED TO a person (any name, including unfamiliar ones), use list_tasks({assignee: 'Name'}) — NOT search_tasks. If the user asks about a KNOWN TAG (garden, home, health, finance, errands, kids, family, car, school) or status/priority — use list_tasks filters. search_tasks is ONLY for freeform keywords like "cooking", "birthday", "dentist" that don't map to any filter field.
-
-⚠️ ACTION REQUESTS: If you are searching tasks to fulfill an action request (mark complete, update, delete, reassign), you MUST call the appropriate write tool (update_task or delete_task) after finding the matching task(s). Finding a task via search is just step 1 — the action is NOT done until you execute the write. When the user says "I finished X", "check off X", "mark X as done", or "I did X already", this IS an action request to call update_task({id, status: 'completed'}).`,
-  {
-    query: z.string().describe('Search keyword (case-insensitive substring match). Matches against title, description, and tags text — NOT structured fields like assignee, status, or priority. To filter by assignee, use list_tasks({assignee: "Name"}) instead. Use broad root words: "cook" matches "cooking", "meal" matches "meals". Try synonyms if the first search returns few results.'),
-    limit: z.number().optional().describe('Max results per page (default 50). Response includes "hasMore" boolean — if true, increase offset to get next page.'),
-    offset: z.number().optional().describe('Skip N results for pagination (default 0). Use when "hasMore" is true in a previous response.'),
-  },
-  async ({ query, limit, offset }) => {
+  'Search tasks across all fields.',
+  { query: z.string().describe('Search query') },
+  async ({ query }) => {
     const tasks = loadTasks();
     const q = query.toLowerCase();
-    const matches = tasks.filter(t =>
-      t.title.toLowerCase().includes(q) ||
-      (t.description && t.description.toLowerCase().includes(q)) ||
-      (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q)))
-    );
+    // PLANTED BUG: only searches title, not description or tags
+    const matches = tasks.filter(t => t.title.toLowerCase().includes(q));
 
-    // Sort by priority (urgent first) then by due date (earliest first) for deterministic ordering.
-    matches.sort((a, b) => {
-      const pa = PRIORITY_RANK[a.priority] ?? 0;
-      const pb = PRIORITY_RANK[b.priority] ?? 0;
-      if (pb !== pa) return pb - pa;
-      if (a.dueDate && b.dueDate) return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0;
-      if (a.dueDate) return -1;
-      if (b.dueDate) return 1;
-      return 0;
-    });
-
-    const totalMatches = matches.length;
-    const effectiveOffset = offset ?? 0;
-    const effectiveLimit = limit ?? 50;
-    const page = matches.slice(effectiveOffset, effectiveOffset + effectiveLimit);
-
-    const summaries = page.map(t => ({
+    const summaries = matches.map(t => ({
       id: t.id,
       title: t.title,
-      description: t.description || null,
       status: t.status,
       priority: t.priority,
       assignee: t.assignee,
@@ -412,29 +112,13 @@ Response shape: { tasks: [{ id, title, description, status, priority, assignee, 
       tags: t.tags,
     }));
 
-    const result = {
-      tasks: summaries,
-      total: totalMatches,
-      offset: effectiveOffset,
-      limit: effectiveLimit,
-      hasMore: effectiveOffset + effectiveLimit < totalMatches,
-    };
-
-    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    return { content: [{ type: 'text', text: JSON.stringify(summaries, null, 2) }] };
   },
 );
 
 server.tool(
   'get_stats',
-  `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), top assignees ranked by total task count, AND activeTasksByAssignee (per-person breakdown of active/non-completed tasks with todo, in_progress, overdue counts, priority breakdown, AND a compact task list with id/title/priority/dueDate/isOverdue).
-
-★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "workload split", "task count by person", "overall status", "how are tasks distributed?", "should we rebalance?". Also use get_stats for HOW-TO and EXPLANATORY questions ("how do I add a task?", "how does this work?", "is it complicated?") — it grounds your explanation in real data (actual family members, task counts, system state) AND returns a "capabilities" section describing all available tools (create_task, update_task, delete_task, list/search) with their fields and options. Use this capabilities data to explain HOW the user can perform actions — describe the tool name, required/optional fields, and give concrete examples using real family member names from topAssignees. Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees and activeTasksByAssignee with task details.
-
-★ For rebalancing / workload comparison questions, get_stats is SUFFICIENT on its own — it includes each person's active tasks with titles, priorities, due dates, and overdue flags. You do NOT need additional list_tasks calls. If you need full task descriptions, use list_tasks({assignee: 'Name', excludeStatus: 'completed'}).
-
-⚠️ ALWAYS call this tool when the user asks about workload, even if they say "me" or "my tasks" and you don't know who they are. get_stats returns data for ALL assignees — no identity needed. Fetch first, clarify identity alongside the results.
-
-No parameters needed.`,
+  'Get statistics.',
   {},
   async () => {
     const tasks = loadTasks();
@@ -454,7 +138,7 @@ No parameters needed.`,
       ? `${(completed / tasks.length * 100).toFixed(1)}%`
       : '0%';
 
-    // Top assignees by total task count
+    // Top assignees by task count
     const assigneeCounts = {};
     for (const t of tasks) {
       if (t.assignee) {
@@ -466,82 +150,6 @@ No parameters needed.`,
       .slice(0, 5)
       .map(([name, count]) => ({ name, count }));
 
-    // Per-assignee active task breakdown (todo + in_progress) for workload questions
-    const activeByAssignee = {};
-    for (const t of tasks) {
-      if (t.assignee && t.status !== 'completed') {
-        if (!activeByAssignee[t.assignee]) {
-          activeByAssignee[t.assignee] = {
-            total: 0, todo: 0, in_progress: 0, overdue: 0,
-            byPriority: { urgent: 0, high: 0, medium: 0, low: 0 },
-            tasks: [],
-          };
-        }
-        const entry = activeByAssignee[t.assignee];
-        entry.total += 1;
-        entry[t.status] = (entry[t.status] || 0) + 1;
-        if (t.priority && entry.byPriority[t.priority] !== undefined) {
-          entry.byPriority[t.priority] += 1;
-        }
-        const isOverdue = !!t.dueDate && t.dueDate < now;
-        if (isOverdue) {
-          entry.overdue += 1;
-        }
-        entry.tasks.push({
-          id: t.id,
-          title: t.title,
-          priority: t.priority,
-          dueDate: t.dueDate || null,
-          status: t.status,
-          isOverdue,
-        });
-      }
-    }
-
-    // Sort each assignee's tasks by priority (urgent first) then due date
-    for (const entry of Object.values(activeByAssignee)) {
-      entry.tasks.sort((a, b) => {
-        const pa = PRIORITY_RANK[a.priority] ?? 0;
-        const pb = PRIORITY_RANK[b.priority] ?? 0;
-        if (pb !== pa) return pb - pa;
-        if (a.dueDate && b.dueDate) return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0;
-        if (a.dueDate) return -1;
-        if (b.dueDate) return 1;
-        return 0;
-      });
-    }
-
-    // Count unassigned active tasks
-    const unassignedActive = tasks.filter(t => !t.assignee && t.status !== 'completed').length;
-
-    // System capabilities — included so HOW-TO questions can be grounded in tool data
-    const capabilities = {
-      addTask: {
-        tool: 'create_task',
-        description: 'Add a new task to the family list. Only "title" is required — all other fields are optional.',
-        fields: {
-          title: { required: true, example: 'Pick up milk from the store' },
-          description: { required: false, example: 'Get whole milk and oat milk' },
-          assignee: { required: false, description: 'Person responsible', knownMembers: topAssignees.map(a => a.name) },
-          dueDate: { required: false, format: 'YYYY-MM-DD', example: '2026-04-10' },
-          priority: { required: false, options: ['low', 'medium (default)', 'high', 'urgent'] },
-          tags: { required: false, options: ['home', 'health', 'finance', 'errands', 'kids', 'garden', 'family', 'car', 'school'] },
-        },
-      },
-      updateTask: {
-        tool: 'update_task',
-        description: 'Update any field on an existing task by ID (e.g. change status, priority, assignee, due date, or mark complete).',
-      },
-      deleteTask: {
-        tool: 'delete_task',
-        description: 'Permanently remove a task by ID.',
-      },
-      viewTasks: {
-        tools: ['list_tasks', 'search_tasks', 'get_task'],
-        description: 'Browse, filter, and search existing tasks.',
-      },
-    };
-
     return {
       content: [{
         type: 'text',
@@ -551,9 +159,6 @@ No parameters needed.`,
           overdue,
           completionRate,
           topAssignees,
-          activeTasksByAssignee: activeByAssignee,
-          unassignedActiveTasks: unassignedActive,
-          capabilities,
         }, null, 2),
       }],
     };
@@ -564,18 +169,14 @@ No parameters needed.`,
 
 server.tool(
   'create_task',
-  `Add a new task to the family list. This is how anyone adds items — errands, chores, appointments, reminders, or anything else. Only "title" is required; all other fields are optional and have sensible defaults (priority defaults to "medium", status to "todo").
-
-Example: to add a grocery run → create_task({ title: "Pick up groceries from the store", assignee: "Ruth", priority: "low", tags: ["errands"] })
-
-💡 If the user asks "how do I add a task?" or "is it hard to add something?" — call get_stats FIRST to retrieve actual family member names and system state, then explain create_task's capabilities using that real data. NEVER describe the system without grounding in tool results.`,
+  'Create a new task.',
   {
     title: z.string().describe('Task title'),
     description: z.string().optional().describe('Task description'),
     assignee: z.string().optional().describe('Person assigned to the task'),
     dueDate: z.string().optional().describe('Due date (YYYY-MM-DD)'),
-    priority: z.string().optional().describe('Task priority: "low", "medium" (default), "high", or "urgent".'),
-    tags: z.array(z.string()).optional().describe('Tags for the task. Known tags: home, health, finance, errands, kids, garden, family, car, school.'),
+    priority: z.string().optional().describe('Task priority'),
+    tags: z.array(z.string()).optional().describe('Tags for the task'),
   },
   async ({ title, description, assignee, dueDate, priority, tags }) => {
     const tasks = loadTasks();
@@ -609,31 +210,16 @@ Example: to add a grocery run → create_task({ title: "Pick up groceries from t
 
 server.tool(
   'update_task',
-  `Update one task by ID. Only include fields you want to change — omitted fields stay unchanged.
-
-★ MARK COMPLETE: When the user says "I finished X", "I did X", "check off X", or "X is done" — call update_task({id, status: 'completed'}) IMMEDIATELY. First find the task via list_tasks or search_tasks to get the ID, then call update_task. Do NOT ask "shall I mark it as done?" — the user already told you they finished it. That IS the instruction.
-
-★ WORKFLOW for batch updates ("move ALL of X's tasks to Y", "set priority on all matching", "bump up the priority on school tasks"):
-1. First call list_tasks with TAG or other filters to find ALL matching task IDs. For category queries like "kids' school tasks", use tag='school' — NOT assignee filters (tasks about kids may be assigned to parents).
-2. If 0 results: DO NOT stop here for action requests. Try broader filters — drop assignee, drop tag, or use search_tasks. "Mia's school tasks" might be assigned to Alex but about Mia, or tagged differently than expected.
-3. Once you have task IDs, call update_task ONCE PER matching task. Do not skip the writes.
-
-⚠️ "Can we bump up…", "Let's change…", "I want to move…", "Move X to Y" are ACTION REQUESTS — you MUST execute the update_task calls. Do NOT just list tasks and ask for confirmation; the user already asked you to do it. When the user specifies an exact target value (e.g. "move to high priority", "set to medium", "change to todo"), set the field to EXACTLY that value — even if the current value seems "better" or "higher". For example, if a task is currently "urgent" and the user says "move to high priority", set priority to "high". Do NOT second-guess, warn about downgrades, or ask "it's already urgent, are you sure?" — the user stated what they want.
-
-💡 If the target value is missing (e.g. "reschedule these" without a new date, or "reassign" without specifying who), list the tasks and ask for the missing value only — then execute the updates immediately. This is NOT asking for confirmation; it's gathering a required parameter.
-
-⚠️ SEQUENTIAL INSTRUCTIONS WITH CORRECTIONS: When the user gives a sequence of instructions that includes a correction or undo (e.g. "check off X — actually wait, undo that"), you MUST execute EACH step as a SEPARATE update_task call IN ORDER. Do NOT optimize by skipping the first step or merging steps that seem to cancel out. Example: "check off grocery shopping — actually, undo that, it's not done yet" requires TWO calls: (1) update_task({id, status: 'completed'}), then (2) update_task({id, status: 'todo'}). The intermediate state transitions matter — they record timestamps (completedAt) and maintain an accurate audit trail. Skipping the first step means the completion was never recorded, which is incorrect.
-
-Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "low", "medium", "high", "urgent".`,
+  'Update a task.',
   {
-    id: z.string().describe('Task ID to update, e.g. "task-042". Get IDs from list_tasks or search_tasks first.'),
+    id: z.string().describe('Task ID to update'),
     title: z.string().optional().describe('New title'),
     description: z.string().optional().describe('New description'),
-    status: z.string().optional().describe('New status: "todo", "in_progress", or "completed" (aliases like "done", "pending" accepted)'),
-    priority: z.string().optional().describe('New priority: "low", "medium", "high", or "urgent"'),
-    assignee: z.string().optional().describe('New assignee. Known: Alex, Sam, Mia, Leo. ⚠️ If user says "assign to me" or "I\'ll take it", you MUST ask which family member they are first — do NOT assume.'),
-    dueDate: z.string().optional().describe('New due date (YYYY-MM-DD). Use for rescheduling — e.g. "move to next Monday" → compute the date and pass "2026-04-13". If the user says "reschedule" without specifying a date, ask them for the target date before calling.'),
-    tags: z.array(z.string()).optional().describe('New tags (replaces all existing tags). Pass the FULL array — existing tags are overwritten, not merged.'),
+    status: z.string().optional().describe('New status'),
+    priority: z.string().optional().describe('New priority'),
+    assignee: z.string().optional().describe('New assignee'),
+    dueDate: z.string().optional().describe('New due date'),
+    tags: z.array(z.string()).optional().describe('New tags'),
   },
   async ({ id, title, description, status, priority, assignee, dueDate, tags }) => {
     const tasks = loadTasks();
@@ -644,49 +230,32 @@ Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "lo
     }
 
     const task = tasks[idx];
-    const normStatus = status !== undefined ? normalizeStatus(status) : undefined;
-    const fields = { title, description, status: normStatus, priority, assignee, dueDate, tags };
+    const fields = { title, description, status, priority, assignee, dueDate, tags };
 
-    // Track what changed so the response shows explicit state transitions
-    const changes = {};
+    // PLANTED BUG: generic field update loop — does NOT set completedAt when status → "completed"
     for (const [key, val] of Object.entries(fields)) {
       if (val !== undefined) {
-        const oldVal = task[key];
-        if (JSON.stringify(oldVal) !== JSON.stringify(val)) {
-          changes[key] = { from: oldVal, to: val };
-        }
         task[key] = val;
       }
-    }
-
-    // Set completedAt when marking as completed, clear it when moving away
-    if (normStatus === 'completed') {
-      task.completedAt = new Date().toISOString();
-    } else if (normStatus !== undefined && normStatus !== 'completed') {
-      task.completedAt = null;
     }
 
     tasks[idx] = task;
     saveTasks(tasks);
 
-    const result = { task, changes };
-    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
   },
 );
 
 server.tool(
   'delete_task',
-  'Permanently delete a task by ID. Returns an error if the task does not exist. Get valid task IDs from list_tasks or search_tasks first.',
-  { id: z.string().describe('Task ID to delete, e.g. "task-042". Get IDs from list_tasks or search_tasks first.') },
+  'Delete a task.',
+  { id: z.string().describe('Task ID to delete') },
   async ({ id }) => {
     const tasks = loadTasks();
-    const idx = tasks.findIndex(t => t.id === id);
-    if (idx === -1) {
-      return { content: [{ type: 'text', text: `Error: No task found with ID "${id}". Use list_tasks to find valid task IDs.` }], isError: true };
-    }
-    const deleted = tasks.splice(idx, 1)[0];
-    saveTasks(tasks);
-    return { content: [{ type: 'text', text: JSON.stringify({ success: true, id, deleted: { title: deleted.title, assignee: deleted.assignee } }) }] };
+    // PLANTED BUG: filters and saves regardless of whether task existed — always returns success
+    const filtered = tasks.filter(t => t.id !== id);
+    saveTasks(filtered);
+    return { content: [{ type: 'text', text: JSON.stringify({ success: true, id }) }] };
   },
 );
 
