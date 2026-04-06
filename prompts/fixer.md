@@ -20,3 +20,4 @@ Rules:
 - If the error is in the handler logic, fix the handler
 - Keep changes small and focused on the specific error
 - NEVER add instructions to reduce tool calls. Tool calls are cheap, wrong answers are expensive. Do not add "ONE call only", "do NOT retry", or "minimize calls" language to descriptions.
+- NEVER create new tools or add new server.tool() definitions. Your job is to fix EXISTING tools — improve descriptions, fix schemas, fix handler bugs. New tools are proposed through the feature competition system, not by the fixer.
