@@ -178,6 +178,7 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
     const effectiveLimit = limit ?? 50;
     tasks = tasks.slice(effectiveOffset, effectiveOffset + effectiveLimit);
 
+    const now = new Date().toISOString().slice(0, 10);
     const summaries = tasks.map(t => ({
       id: t.id,
       title: t.title,
@@ -187,6 +188,7 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
       assignee: t.assignee,
       dueDate: t.dueDate,
       tags: t.tags,
+      isOverdue: t.status !== 'completed' && !!t.dueDate && t.dueDate < now,
     }));
 
     const result = {
