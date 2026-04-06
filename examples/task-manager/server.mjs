@@ -383,9 +383,11 @@ Response shape: { tasks: [{ id, title, description, status, priority, assignee, 
 
 server.tool(
   'get_stats',
-  `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), top assignees ranked by total task count, AND activeTasksByAssignee (per-person breakdown of active/non-completed tasks with todo, in_progress, and overdue counts).
+  `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), top assignees ranked by total task count, AND activeTasksByAssignee (per-person breakdown of active/non-completed tasks with todo, in_progress, overdue counts, priority breakdown, AND a compact task list with id/title/priority/dueDate/isOverdue).
 
-★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "workload split", "task count by person", "overall status", "how are tasks distributed?", "should we rebalance?". Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees and activeTasksByAssignee.
+★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "workload split", "task count by person", "overall status", "how are tasks distributed?", "should we rebalance?". Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees and activeTasksByAssignee WITH full task details.
+
+★ For rebalancing / workload comparison questions, get_stats is SUFFICIENT on its own — it includes each person's active tasks with titles, priorities, due dates, and overdue flags. You do NOT need additional list_tasks calls.
 
 ⚠️ ALWAYS call this tool when the user asks about workload, even if they say "me" or "my tasks" and you don't know who they are. get_stats returns data for ALL assignees — no identity needed. Fetch first, clarify identity alongside the results.
 
@@ -426,14 +428,44 @@ No parameters needed.`,
     for (const t of tasks) {
       if (t.assignee && t.status !== 'completed') {
         if (!activeByAssignee[t.assignee]) {
-          activeByAssignee[t.assignee] = { total: 0, todo: 0, in_progress: 0, overdue: 0 };
+          activeByAssignee[t.assignee] = {
+            total: 0, todo: 0, in_progress: 0, overdue: 0,
+            byPriority: { urgent: 0, high: 0, medium: 0, low: 0 },
+            tasks: [],
+          };
         }
-        activeByAssignee[t.assignee].total += 1;
-        activeByAssignee[t.assignee][t.status] = (activeByAssignee[t.assignee][t.status] || 0) + 1;
-        if (t.dueDate && t.dueDate < now) {
-          activeByAssignee[t.assignee].overdue += 1;
+        const entry = activeByAssignee[t.assignee];
+        entry.total += 1;
+        entry[t.status] = (entry[t.status] || 0) + 1;
+        if (t.priority && entry.byPriority[t.priority] !== undefined) {
+          entry.byPriority[t.priority] += 1;
         }
+        const isOverdue = !!t.dueDate && t.dueDate < now;
+        if (isOverdue) {
+          entry.overdue += 1;
+        }
+        entry.tasks.push({
+          id: t.id,
+          title: t.title,
+          priority: t.priority,
+          dueDate: t.dueDate || null,
+          status: t.status,
+          isOverdue,
+        });
       }
+    }
+
+    // Sort each assignee's tasks by priority (urgent first) then due date
+    for (const entry of Object.values(activeByAssignee)) {
+      entry.tasks.sort((a, b) => {
+        const pa = PRIORITY_RANK[a.priority] ?? 0;
+        const pb = PRIORITY_RANK[b.priority] ?? 0;
+        if (pb !== pa) return pb - pa;
+        if (a.dueDate && b.dueDate) return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0;
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return 0;
+      });
     }
 
     // Count unassigned active tasks
