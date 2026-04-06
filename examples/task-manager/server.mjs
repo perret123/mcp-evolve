@@ -120,7 +120,8 @@ Critical rules:
 14. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
 15. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?"). **Ambiguity: "the kids' tasks"** — if the user means tasks assigned to the children (Mia, Leo), use assignee filters (one call per child). If they mean kid-related tasks as a category, use tag='kids'. Context clues: "Mia and Leo's tasks" → assignee. "Kid-related stuff" → tag.
 16. **"Can we…", "Let's…", "I want to…", "Move X to Y", "I finished X", "I did X", "Check off X" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", "I want to reassign these", "I finished my homework", "I did X already", or "check off X for me" — they are asking you to DO IT. Specifically: **"I finished X" / "I did X" / "check it off" = call update_task({id, status: 'completed'}) IMMEDIATELY after finding the task.** Do NOT ask "shall I mark it done?" when the user already said they finished it — that IS the instruction to mark it done. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead. **When the user specifies an exact target value** (e.g. "move to high priority", "set to medium"), use that EXACT value even if the current value seems higher/better. "Move to high" means set priority="high" — do NOT skip or ask for confirmation because the task is already "urgent". The user decides the right priority, not you. **Exception: if the action requires a value the user hasn't provided** (e.g. "Can we reschedule these?" but no target date, "reassign these" but no target person), list the matching tasks and ask ONLY for the missing value — then execute immediately once you have it. This is asking for missing information, not asking for confirmation.
-17. **"Unassigned tasks" → use list_tasks(unassigned=true).** To find tasks with no assignee, use the unassigned=true filter. Do NOT try to pass null or empty string to the assignee parameter.`,
+17. **"Unassigned tasks" → use list_tasks(unassigned=true).** To find tasks with no assignee, use the unassigned=true filter. Do NOT try to pass null or empty string to the assignee parameter.
+18. **EXECUTE CORRECTIONS IN ORDER — never skip steps.** When a user gives a sequence of instructions with a correction or undo ("check off X — actually wait, undo that"), you MUST execute EACH step as a SEPARATE tool call in sequential order. First execute the original action (e.g. mark completed), THEN execute the correction (e.g. revert to todo). Do NOT "optimize" by skipping the first step because the second step undoes it. The intermediate state must be recorded — it sets timestamps like completedAt and maintains proper task history. Example: "check off grocery shopping — actually no, undo that, and add a family tag" = THREE calls: (1) update_task(status:'completed'), (2) update_task(status:'todo'), (3) update_task(tags:[...,'family']).`,
 });
 
 // --- Read Tools ---
@@ -311,8 +312,11 @@ Response shape: { tasks: [{ id, title, description, status, priority, assignee, 
         // exist under other assignees.
         const allTasks = loadTasks();
         const nameLower = assignee.toLowerCase();
+        // Only include NON-COMPLETED tasks that mention the person — completed
+        // historical tasks are noise that overwhelms the main task list and can
+        // cause the LLM to lose track of the directly-assigned tasks above.
         const mentionedElsewhere = allTasks.filter(t =>
-          t.assignee !== assignee && (
+          t.assignee !== assignee && t.status !== 'completed' && (
             t.title.toLowerCase().includes(nameLower) ||
             (t.description && t.description.toLowerCase().includes(nameLower))
           )
@@ -325,7 +329,7 @@ Response shape: { tasks: [{ id, title, description, status, priority, assignee, 
             `${t.id} "${t.title}" (assigned to ${t.assignee || 'unassigned'}, status=${t.status}, priority=${t.priority}, due=${t.dueDate || 'none'}, tags=[${(t.tags || []).join(', ')}])`
           ).join('; ');
 
-          result.hint = `Showing ${totalFiltered} task(s) directly ASSIGNED to "${assignee}". Additionally, ${mentionedElsewhere.length} task(s) assigned to OTHER family members mention "${assignee}" by name in their title/description — here are their details: ${mentionedDetails}.${mentionedElsewhere.length > 10 ? ` (showing first 10 of ${mentionedElsewhere.length} — use search_tasks("${assignee}") for the full list.)` : ''} ⚠️ These tasks belong to whoever they are ASSIGNED to — only include them if the user is asking about tasks RELATED TO "${assignee}" (e.g. "tasks for the kids", "what's coming up for Mia") rather than "${assignee}'s assignments/workload".`;
+          result.hint = `Showing ${totalFiltered} task(s) directly ASSIGNED to "${assignee}". Additionally, ${mentionedElsewhere.length} active (non-completed) task(s) assigned to OTHER family members mention "${assignee}" by name in their title/description — here are their details: ${mentionedDetails}.${mentionedElsewhere.length > 10 ? ` (showing first 10 of ${mentionedElsewhere.length} — use search_tasks("${assignee}") for the full list.)` : ''} ⚠️ These tasks belong to whoever they are ASSIGNED to — only include them if the user is asking about tasks RELATED TO "${assignee}" (e.g. "tasks for the kids", "what's coming up for Mia") rather than "${assignee}'s assignments/workload".`;
         }
       }
     }
@@ -615,6 +619,8 @@ server.tool(
 
 💡 If the target value is missing (e.g. "reschedule these" without a new date, or "reassign" without specifying who), list the tasks and ask for the missing value only — then execute the updates immediately. This is NOT asking for confirmation; it's gathering a required parameter.
 
+⚠️ SEQUENTIAL INSTRUCTIONS WITH CORRECTIONS: When the user gives a sequence of instructions that includes a correction or undo (e.g. "check off X — actually wait, undo that"), you MUST execute EACH step as a SEPARATE update_task call IN ORDER. Do NOT optimize by skipping the first step or merging steps that seem to cancel out. Example: "check off grocery shopping — actually, undo that, it's not done yet" requires TWO calls: (1) update_task({id, status: 'completed'}), then (2) update_task({id, status: 'todo'}). The intermediate state transitions matter — they record timestamps (completedAt) and maintain an accurate audit trail. Skipping the first step means the completion was never recorded, which is incorrect.
+
 Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "low", "medium", "high", "urgent".`,
   {
     id: z.string().describe('Task ID to update, e.g. "task-042". Get IDs from list_tasks or search_tasks first.'),
@@ -638,8 +644,14 @@ Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "lo
     const normStatus = status !== undefined ? normalizeStatus(status) : undefined;
     const fields = { title, description, status: normStatus, priority, assignee, dueDate, tags };
 
+    // Track what changed so the response shows explicit state transitions
+    const changes = {};
     for (const [key, val] of Object.entries(fields)) {
       if (val !== undefined) {
+        const oldVal = task[key];
+        if (JSON.stringify(oldVal) !== JSON.stringify(val)) {
+          changes[key] = { from: oldVal, to: val };
+        }
         task[key] = val;
       }
     }
@@ -654,7 +666,8 @@ Statuses: "todo", "in_progress", "completed" (aliases accepted). Priorities: "lo
     tasks[idx] = task;
     saveTasks(tasks);
 
-    return { content: [{ type: 'text', text: JSON.stringify(task, null, 2) }] };
+    const result = { task, changes };
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
   },
 );
 
