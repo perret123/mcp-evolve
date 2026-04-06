@@ -1,6 +1,6 @@
-# Task Manager — mcp-evolve Proof of Concept Results
+# Task Manager — Round 1 Results
 
-16 runs of mcp-evolve against a family task manager MCP server with 120 seeded tasks, 7 tools (3 planted bugs, 4 sloppy descriptions), and 5 personas.
+35 runs of mcp-evolve against a family task manager MCP server with 120 seeded tasks, 7 tools (3 planted bugs, 4 sloppy descriptions), and 5 personas. During this round, mcp-evolve itself was also being improved (grading, parallel fixers, worktrees, etc.).
 
 ## Run-by-Run Results
 
@@ -23,7 +23,24 @@
 | 15 | 90% | 0.30 | 4.9m | Same identity issue |
 | 16 | 80% | 0.20 | 7.7m | First run without persona context — realistic MCP simulation |
 | 17 | 70% | 0.70 | 7.2m | Fixer invented get_current_user tool (!), name-only grader adjustment |
-| 18 | ? | ? | ? | All fixes: name to answerer+grader, fixer can't create tools |
+| 18 | **100%** | 0.00 | 4.2m | Name fix eliminated identity false positives |
+| 19 | **100%** | 0.00 | ~4m | Clean |
+| 20 | 90% | 0.33 | ~9m | Minor fix committed |
+| 21 | **100%** | 0.00 | ~4m | Streak = 1 |
+| 22 | **100%** | 0.00 | ~4m | Streak = 2 |
+| 23 | **100%** | 0.00 | ~9m | **Streak = 3 → ESCALATION triggered!** (0 questions generated) |
+| 24 | 90% | 0.50 | ~10m | Streak broken |
+| 25 | 90% | 0.17 | ~10m | |
+| 26 | 90% | 0.33 | ~8m | Significant fix (39 lines) |
+| 27 | 90% | 0.50 | ~9m | Major rework |
+| 28 | 80% | 0.67 | ~9m | Fix committed |
+| 29 | 90% | 0.50 | ~9m | Large improvement |
+| 30 | **100%** | 0.00 | ~4m | Clean finish |
+| 31 | 85.7% | 0.14 | ~11m | Golden set active (2→4), 2 PROMOTED |
+| 32 | 90.9% | 0.27 | ~8m | 1 fixed + replayed |
+| 33 | **100%** | 0.00 | ~5m | 12 questions including 4 golden — all pass |
+| 34 | 82.4% | 0.29 | ~12m | 17 questions, 3 fixed, 1 PROMOTED |
+| 35 | 81.8% | 0.18 | ~10m | Golden set = 5, 2 fixed |
 
 ## What mcp-evolve Fixed in the Task Manager
 
