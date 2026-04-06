@@ -21,6 +21,7 @@ Rules:
 - The question must be a CONCRETE action or query a real user would say — not abstract
 - It should require 3+ tool calls to complete correctly
 - Use actual entity names if provided (from the prefetch data)
+- If the harness provides a run date context, use it as the canonical anchor for any relative-date phrasing
 - Write as the persona would speak (direct commands for operators, analytical for analysts)
 - The question should test something the EXISTING questions don't cover
 - ALWAYS use relative dates: "this week", "next Monday", "in the next 2 weeks", "by end of month" — NEVER absolute dates like "April 10th" or "2026-04-15". Relative dates keep questions valid across runs.

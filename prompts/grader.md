@@ -9,12 +9,22 @@ Grade the answer on these criteria:
 3. **Data integrity**: If a write operation was performed (create/update/delete), does the tool result confirm the operation worked correctly? Check for missing fields, wrong values, or silent failures.
 4. **Tool usage**: Were the right tools used? Did the assistant miss an obvious tool that should have been called?
 
+If the harness provides a "Run date context" block:
+- Treat that date context as canonical
+- If resolved relative dates are provided, use those exact YYYY-MM-DD values when judging date correctness
+- Do NOT override the supplied date interpretation with your own intuition
+
+You must also judge action requests carefully:
+- If a mutation was requested and a write tool was called appropriately, use `actionExpectation: "write_performed"`
+- If a mutation was requested but the state already satisfied the request and the assistant clearly explained the no-op, use `actionExpectation: "valid_noop"`
+- Otherwise use `actionExpectation: "missing_write"`
+
 Reply with ONLY a JSON object:
 
 If the answer is correct:
-{"pass": true}
+{"pass": true, "actionExpectation": "not_action"}
 
 If there are issues:
-{"pass": false, "issues": ["specific issue 1", "specific issue 2"]}
+{"pass": false, "issues": ["specific issue 1", "specific issue 2"], "actionExpectation": "missing_write"}
 
 Be strict but fair. Flag real problems, not style preferences. A correct answer with informal tone is still correct. Focus on factual accuracy and whether the tools actually did what the user asked.
