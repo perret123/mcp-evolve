@@ -2,7 +2,7 @@
 
 /**
  * Task Manager MCP server.
- * Family to-do list for a household with members Alex, Sam, Mia, and Leo.
+ * Family to-do list for a household.
  *
  * Read:  list_tasks, get_task, search_tasks, get_stats
  * Write: create_task, update_task, delete_task
@@ -66,35 +66,36 @@ const server = new McpServer({
   name: 'task-manager',
   version: '0.1.0',
 }, {
-  instructions: `A family task manager for a household with members Alex, Sam, Mia, and Leo. Manage to-do items for the whole family.
+  instructions: `A family task manager. Call get_stats or list_tasks to discover who the family members are, what tasks exist, and how the system is set up. Do NOT describe the family, its members, or the system's contents without first retrieving data from a tool.
 
 Key conventions:
 - Statuses: "todo", "in_progress", "completed" (aliases like "pending", "done" are accepted but always normalized internally). These are the ONLY statuses — there are no "blocked", "waiting", or "on_hold" statuses.
 - Priorities (ranked low → urgent): "low" < "medium" < "high" < "urgent". list_tasks results are sorted highest priority first.
-- Assignees: Alex, Sam, Mia, Leo, or unassigned.
 - Tags: home, health, finance, errands, kids, garden, family, car, school.
 
 Critical rules:
-1. **ALWAYS FETCH DATA FIRST — identity ambiguity NEVER blocks read calls.** When the user says "me", "my tasks", or "I", call the relevant read tools IMMEDIATELY (get_stats, list_tasks, etc.) to gather data. Do NOT ask "who are you?" as your first response — that wastes a turn. Present the data you found, and if you still need to know who "me" is, ask ALONGSIDE the results. Example: user asks "How is the workload split between Alex and me?" → call get_stats FIRST (it returns ALL assignees' workload), present the full breakdown, THEN say "which family member are you so I can highlight your share?" Do NOT assume which member "me" is — but fetching data requires ZERO assumptions, so do it immediately. For WRITE operations ("assign to me", "I'll take it"), you MUST confirm which family member before executing the write, but still gather relevant read data while asking.
-2. **GROUND ANSWERS IN TOOL DATA ONLY.** Never include task names, dates, or details that don't appear in tool results. If a tool returns an empty array or zero results, say "no matching tasks found" — do NOT guess, fabricate, or extrapolate tasks that might exist. This applies even when the user expects a certain answer (e.g. "fun stuff coming up" → if no fun tasks exist, say so honestly). If results are truncated, make additional calls (with offset) to get the remaining data before answering.
-3. **"All active tasks" → use excludeStatus="completed".** When asked for everything someone is working on, what's on their plate, or tasks that aren't done, use excludeStatus="completed" to get all non-completed tasks regardless of specific status.
-4. **OVERDUE queries → overdue=true.** To find overdue tasks, use list_tasks with overdue=true. NEVER use dueBefore — it returns tasks of ALL statuses including completed.
-5. **Tag filtering → list_tasks(tag=...), NOT search_tasks.** Known tags are: home, health, finance, errands, kids, garden, family, car, school. If the user asks about any of these, use list_tasks with the tag filter — do NOT call search_tasks. search_tasks is ONLY for freeform keyword lookups when you don't know which field to filter by (e.g. "cooking", "birthday", or other words that aren't known tags/assignees/statuses).
-6. **search_tasks is substring-based.** "cook" matches "cooking", "meal" matches "meals". Start with a broad root word. If few/no results, try synonyms — e.g. "cook" then "meal" then "food".
-7. **Batch updates → update ALL matching items.** When asked to update "all tasks that match X", first list ALL matches, then update_task once for EACH. The task is NOT done until the write calls are made.
-8. **Ties → acknowledge and explain.** When asked for "the highest priority" and multiple tasks tie, say so.
-9. **ACTION REQUESTS require thorough search before giving up.** When asked to update/move/delete tasks and your first query returns 0 results, you MUST broaden the search before concluding no tasks exist:
+1. **ALWAYS CALL A TOOL BEFORE RESPONDING — no exceptions.** Every response MUST be preceded by at least one tool call. There is NO question type that is exempt — not "how do I…?", not "is it hard?", not "can you explain?", not "what's this system?". Zero-tool responses are NEVER acceptable.
+2. **HOW-TO / EXPLANATORY QUESTIONS → call get_stats FIRST.** When the user asks "how do I add something?", "how does this work?", "is it complicated?", or any question about the system's capabilities — call get_stats BEFORE answering. This grounds your explanation in real data (actual family members, actual task counts, actual system state). Then explain how the relevant tool works using that data. Do NOT describe the system from memory or imagination — EVERY detail in your response (family member names, what's on the list, how many tasks exist) must come from the tool result.
+3. **IDENTITY-AMBIGUOUS QUESTIONS ("me", "my tasks", "I") → call read tools IMMEDIATELY.** Call get_stats or list_tasks FIRST — do NOT ask "who are you?" as your first response. Present the data you found, and if you still need identity, ask ALONGSIDE the results. Example: user asks "How is the workload split between Alex and me?" → call get_stats FIRST, present the full breakdown, THEN ask which family member they are. For WRITE operations ("assign to me", "I'll take it"), you MUST confirm which family member before executing the write, but still gather relevant read data while asking.
+4. **GROUND ANSWERS IN TOOL DATA ONLY.** Never include task names, dates, assignee names, family member names, or ANY factual details about the system that don't appear in tool results from THIS conversation. Even if you see names or details in these instructions or tool descriptions, you MUST retrieve them via a tool call before including them in your answer — the instructions exist to help you USE the tools correctly, not to provide data for your response. If a tool returns an empty array or zero results, say "no matching tasks found" — do NOT guess, fabricate, or extrapolate tasks that might exist. This applies even when the user expects a certain answer (e.g. "fun stuff coming up" → if no fun tasks exist, say so honestly). If results are truncated, make additional calls (with offset) to get the remaining data before answering.
+5. **"All active tasks" → use excludeStatus="completed".** When asked for everything someone is working on, what's on their plate, or tasks that aren't done, use excludeStatus="completed" to get all non-completed tasks regardless of specific status.
+6. **OVERDUE queries → overdue=true.** To find overdue tasks, use list_tasks with overdue=true. NEVER use dueBefore — it returns tasks of ALL statuses including completed.
+7. **Tag filtering → list_tasks(tag=...), NOT search_tasks.** Known tags are: home, health, finance, errands, kids, garden, family, car, school. If the user asks about any of these, use list_tasks with the tag filter — do NOT call search_tasks. search_tasks is ONLY for freeform keyword lookups when you don't know which field to filter by (e.g. "cooking", "birthday", or other words that aren't known tags/assignees/statuses).
+8. **search_tasks is substring-based.** "cook" matches "cooking", "meal" matches "meals". Start with a broad root word. If few/no results, try synonyms — e.g. "cook" then "meal" then "food".
+9. **Batch updates → update ALL matching items.** When asked to update "all tasks that match X", first list ALL matches, then update_task once for EACH. The task is NOT done until the write calls are made.
+10. **Ties → acknowledge and explain.** When asked for "the highest priority" and multiple tasks tie, say so.
+11. **ACTION REQUESTS require thorough search before giving up.** When asked to update/move/delete tasks and your first query returns 0 results, you MUST broaden the search before concluding no tasks exist:
    - Drop the assignee filter (tasks "about" Mia may be assigned to Alex)
    - Drop the tag filter (school tasks might not be tagged "school")
    - Try search_tasks with the person's name or keyword
    - Check the "hint" field in list_tasks responses — it flags tasks that mention the person by name
    Only after 2-3 search strategies return nothing can you report "no matching tasks found". A single narrow query returning 0 is NOT sufficient for action requests.
-10. **Filters are AND-combined** in a single list_tasks call (e.g. assignee + excludeStatus + tag = all three must match). For OR logic (e.g. "assigned to Leo OR tagged kids"), make separate calls and merge results.
-11. **Use get_stats for counting/comparison/workload questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "workload split", "should we rebalance?", "task distribution". It returns byStatus, overdue count, completionRate, topAssignees (total tasks per person), AND activeTasksByAssignee (per-person breakdown of non-completed tasks with todo/in_progress/overdue counts). Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
-12. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
-13. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?"). **Ambiguity: "the kids' tasks"** — if the user means tasks assigned to the children (Mia, Leo), use assignee filters (one call per child). If they mean kid-related tasks as a category, use tag='kids'. Context clues: "Mia and Leo's tasks" → assignee. "Kid-related stuff" → tag.
-14. **"Can we…", "Let's…", "I want to…" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead. **Exception: if the action requires a value the user hasn't provided** (e.g. "Can we reschedule these?" but no target date, "reassign these" but no target person), list the matching tasks and ask ONLY for the missing value — then execute immediately once you have it. This is asking for missing information, not asking for confirmation.
-15. **"Unassigned tasks" → use list_tasks(unassigned=true).** To find tasks with no assignee, use the unassigned=true filter. Do NOT try to pass null or empty string to the assignee parameter.`,
+12. **Filters are AND-combined** in a single list_tasks call (e.g. assignee + excludeStatus + tag = all three must match). For OR logic (e.g. "assigned to Leo OR tagged kids"), make separate calls and merge results.
+13. **Use get_stats for counting/comparison/workload questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "workload split", "should we rebalance?", "task distribution". It returns byStatus, overdue count, completionRate, topAssignees (total tasks per person), AND activeTasksByAssignee (per-person breakdown of non-completed tasks with todo/in_progress/overdue counts). Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
+14. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
+15. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?"). **Ambiguity: "the kids' tasks"** — if the user means tasks assigned to the children (Mia, Leo), use assignee filters (one call per child). If they mean kid-related tasks as a category, use tag='kids'. Context clues: "Mia and Leo's tasks" → assignee. "Kid-related stuff" → tag.
+16. **"Can we…", "Let's…", "I want to…" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead. **Exception: if the action requires a value the user hasn't provided** (e.g. "Can we reschedule these?" but no target date, "reassign these" but no target person), list the matching tasks and ask ONLY for the missing value — then execute immediately once you have it. This is asking for missing information, not asking for confirmation.
+17. **"Unassigned tasks" → use list_tasks(unassigned=true).** To find tasks with no assignee, use the unassigned=true filter. Do NOT try to pass null or empty string to the assignee parameter.`,
 });
 
 // --- Read Tools ---
@@ -385,7 +386,7 @@ server.tool(
   'get_stats',
   `Get summary statistics — use this INSTEAD of list_tasks when the question is about counts, comparisons, or overviews. Returns: total count, breakdown by status (byStatus), overdue count, completion rate (%), top assignees ranked by total task count, AND activeTasksByAssignee (per-person breakdown of active/non-completed tasks with todo, in_progress, overdue counts, priority breakdown, AND a compact task list with id/title/priority/dueDate/isOverdue).
 
-★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "workload split", "task count by person", "overall status", "how are tasks distributed?", "should we rebalance?". Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees and activeTasksByAssignee WITH full task details.
+★ Use get_stats for: "who has the most tasks?", "what's the completion rate?", "how many tasks are overdue?", "workload breakdown", "workload split", "task count by person", "overall status", "how are tasks distributed?", "should we rebalance?". Also use get_stats for HOW-TO and EXPLANATORY questions ("how do I add a task?", "how does this work?", "is it complicated?") — it grounds your explanation in real data (actual family members, task counts, system state) so you never fabricate details. Do NOT loop through list_tasks per-assignee to count tasks — get_stats already provides topAssignees and activeTasksByAssignee WITH full task details.
 
 ★ For rebalancing / workload comparison questions, get_stats is SUFFICIENT on its own — it includes each person's active tasks with titles, priorities, due dates, and overdue flags. You do NOT need additional list_tasks calls.
 
@@ -492,7 +493,11 @@ No parameters needed.`,
 
 server.tool(
   'create_task',
-  'Create a new task.',
+  `Add a new task to the family list. This is how anyone adds items — errands, chores, appointments, reminders, or anything else. Only "title" is required; all other fields are optional and have sensible defaults (priority defaults to "medium", status to "todo").
+
+Example: to add a grocery run → create_task({ title: "Pick up groceries from the store", assignee: "Ruth", priority: "low", tags: ["errands"] })
+
+💡 If the user asks "how do I add a task?" or "is it hard to add something?" — call get_stats FIRST to retrieve actual family member names and system state, then explain create_task's capabilities using that real data. NEVER describe the system without grounding in tool results.`,
   {
     title: z.string().describe('Task title'),
     description: z.string().optional().describe('Task description'),
