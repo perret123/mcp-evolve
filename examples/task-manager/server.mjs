@@ -92,7 +92,7 @@ Critical rules:
 10. **Filters are AND-combined** in a single list_tasks call (e.g. assignee + excludeStatus + tag = all three must match). For OR logic (e.g. "assigned to Leo OR tagged kids"), make separate calls and merge results.
 11. **Use get_stats for counting/comparison/workload questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "workload split", "should we rebalance?", "task distribution". It returns byStatus, overdue count, completionRate, topAssignees (total tasks per person), AND activeTasksByAssignee (per-person breakdown of non-completed tasks with todo/in_progress/overdue counts). Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
 12. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
-13. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?").
+13. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?"). **Ambiguity: "the kids' tasks"** — if the user means tasks assigned to the children (Mia, Leo), use assignee filters (one call per child). If they mean kid-related tasks as a category, use tag='kids'. Context clues: "Mia and Leo's tasks" → assignee. "Kid-related stuff" → tag.
 14. **"Can we…", "Let's…", "I want to…" = ACTION REQUESTS — execute writes.** When the user says "Can we bump up the priority?", "Let's move these to next week", or "I want to reassign these" — they are asking you to DO IT. Find the matching tasks, then call update_task for EACH one. Do NOT just list tasks and ask "shall I proceed?" — the user already gave you the go-ahead. **Exception: if the action requires a value the user hasn't provided** (e.g. "Can we reschedule these?" but no target date, "reassign these" but no target person), list the matching tasks and ask ONLY for the missing value — then execute immediately once you have it. This is asking for missing information, not asking for confirmation.
 15. **"Unassigned tasks" → use list_tasks(unassigned=true).** To find tasks with no assignee, use the unassigned=true filter. Do NOT try to pass null or empty string to the assignee parameter.`,
 });
@@ -114,7 +114,12 @@ Tips:
 
 Results sorted by priority (urgent→low), then due date. Paginated (default limit=50, check "hasMore").
 
-💡 "Someone's tasks" can mean tasks ASSIGNED to them OR tasks ABOUT them (mentioned in title/description but assigned to another family member). When assignee + other filters return 0 results, the response may include a "hint" field listing tasks that mention the person — follow the hint to broaden your search before concluding no tasks exist.`,
+Response shape: { tasks: [{ id, title, description, status, priority, assignee, dueDate, tags, **isOverdue** }], total, offset, limit, hasMore, hint? }
+• Each task includes an **isOverdue** boolean — true when dueDate is past AND status ≠ completed. Use this to identify overdue items from ANY list_tasks call without needing a separate overdue=true call. Example: "what's on Sam's plate, anything overdue?" → one call: list_tasks({assignee:'Sam', excludeStatus:'completed'}), then check isOverdue on each result.
+
+💡 "Someone's tasks" can mean tasks ASSIGNED to them OR tasks ABOUT them (mentioned in title/description but assigned to another family member). When assignee + other filters return 0 results, the response may include a "hint" field listing tasks that mention the person — follow the hint to broaden your search before concluding no tasks exist.
+
+💡 "The kids' tasks" = tasks assigned to Mia and/or Leo (the children). The tag "kids" is a CATEGORY tag for kid-related tasks that may be assigned to anyone. When the user says "kids' tasks" meaning Mia and Leo specifically, use assignee filters. When they say "kid-related tasks" or "tasks tagged kids", use tag='kids'.`,
   {
     overdue: z.boolean().optional().describe('**Use this for overdue queries.** Set to true to return ONLY tasks that are past due AND not completed. This is the correct way to answer "what is overdue?" — do NOT use dueBefore for overdue queries.'),
     status: z.string().optional().describe('Filter by status: "todo", "in_progress", or "completed". Aliases accepted (e.g. "pending"→todo, "done"→completed).'),
@@ -314,6 +319,9 @@ server.tool(
   `Freeform substring search across task titles, descriptions, and tags. Case-insensitive — "cook" matches "cooking class" and "cookbook". Accepts ONE keyword per call. When the user mentions multiple distinct terms (e.g. "cooking or meals"), make one call per term. Try synonyms if the first search returns few results (e.g. "cook" → "meal" → "food").
 
 Returns paginated results (default limit=50, check "hasMore"). Fetch ALL pages before acting on results.
+
+Response shape: { tasks: [{ id, title, description, status, priority, assignee, dueDate, tags }], total, offset, limit, hasMore }
+⚠️ Unlike list_tasks, search_tasks does NOT include an "isOverdue" field. To check if a search result is overdue, inspect its status (≠ completed) and dueDate (< today) manually.
 
 ⚠️ Results include tasks of ALL statuses (including completed). Check each task's "status" field when the user only cares about active tasks — filter out completed results mentally before answering.
 
