@@ -233,14 +233,22 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
           if (mentionMatches.length > 0) {
             result.hint = `No tasks are directly ASSIGNED to "${assignee}" matching these filters, but ${mentionMatches.length} task(s) mention "${assignee}" in their title/description: ${mentionMatches.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee})`).join(', ')}. The user may be referring to these — try removing the assignee filter or using search_tasks("${assignee}") to find tasks ABOUT this person.`;
           } else {
-            // No mention-matches either — guide the LLM to broaden further
+            // No mention-matches either — check if broader set has tasks at all
+            // to give the LLM a more definitive answer faster.
             const filterDesc = [
               tag && `tag="${tag}"`,
               normalizedStatus && `status="${normalizedStatus}"`,
               normalizedExcludeStatus && `excludeStatus="${normalizedExcludeStatus}"`,
               priority && `priority="${priority}"`,
             ].filter(Boolean).join(' + ');
-            result.hint = `Zero results for assignee="${assignee}" with ${filterDesc}. Before concluding no tasks exist: (1) try dropping the assignee filter to see if matching tasks are assigned to someone else, (2) try dropping the tag filter — the task may not be tagged as expected, (3) try search_tasks("${assignee}") or search_tasks with the topic keyword to find tasks by content rather than structured filters.`;
+
+            if (broader.length > 0) {
+              // There ARE tasks matching the non-assignee filters, but none mention this person
+              const otherAssignees = [...new Set(broader.map(t => t.assignee || 'unassigned'))].join(', ');
+              result.hint = `Zero results for assignee="${assignee}" with ${filterDesc}. ${broader.length} task(s) match the ${filterDesc} filter(s) but are assigned to OTHER people (${otherAssignees}) and NONE mention "${assignee}" in their title/description. This strongly suggests no ${tag || 'matching'} tasks exist for "${assignee}". You may still try search_tasks("${assignee}") as a final check, but it is likely that no matching tasks exist for this person.`;
+            } else {
+              result.hint = `Zero results for assignee="${assignee}" with ${filterDesc}, and zero tasks match ${filterDesc} across ALL assignees either. No ${tag || 'matching'} tasks exist in the system at all. You can confidently report "no matching tasks found".`;
+            }
           }
         } else if (otherAssigneeTasks.length > 0) {
           // Some results found, but MORE matching tasks exist under other assignees.
@@ -272,21 +280,13 @@ Results sorted by priority (urgent→low), then due date. Paginated (default lim
         );
 
         if (mentionedElsewhere.length > 0) {
-          // Build tag distribution for tasks mentioning this person under other assignees
-          const tagCounts = {};
-          for (const t of mentionedElsewhere) {
-            if (t.tags) {
-              for (const tg of t.tags) {
-                tagCounts[tg] = (tagCounts[tg] || 0) + 1;
-              }
-            }
-          }
-          const tagBreakdown = Object.entries(tagCounts)
-            .sort((a, b) => b[1] - a[1])
-            .map(([tg, n]) => `${tg}(${n})`)
-            .join(', ');
+          // Include full task details for mentioned-elsewhere tasks so the LLM
+          // doesn't need follow-up calls to discover tasks ABOUT this person.
+          const mentionedDetails = mentionedElsewhere.slice(0, 10).map(t =>
+            `${t.id} "${t.title}" (assigned to ${t.assignee || 'unassigned'}, status=${t.status}, priority=${t.priority}, due=${t.dueDate || 'none'}, tags=[${(t.tags || []).join(', ')}])`
+          ).join('; ');
 
-          result.hint = `Showing ${totalFiltered} task(s) directly ASSIGNED to "${assignee}". Additionally, ${mentionedElsewhere.length} task(s) assigned to OTHER family members mention "${assignee}" by name in their title/description. Tags on those tasks: ${tagBreakdown}. If the user is asking about a specific TOPIC related to ${assignee} (e.g. school, health), try adding a tag filter (e.g. list_tasks({tag: 'school'})) or use search_tasks("${assignee}") to find ALL tasks about ${assignee} regardless of who they are assigned to.`;
+          result.hint = `Showing ${totalFiltered} task(s) directly ASSIGNED to "${assignee}". Additionally, ${mentionedElsewhere.length} task(s) assigned to OTHER family members mention "${assignee}" by name in their title/description — here are their details: ${mentionedDetails}.${mentionedElsewhere.length > 10 ? ` (showing first 10 of ${mentionedElsewhere.length} — use search_tasks("${assignee}") for the full list.)` : ''} ⚠️ These tasks belong to whoever they are ASSIGNED to — only include them if the user is asking about tasks RELATED TO "${assignee}" (e.g. "tasks for the kids", "what's coming up for Mia") rather than "${assignee}'s assignments/workload".`;
         }
       }
     }
