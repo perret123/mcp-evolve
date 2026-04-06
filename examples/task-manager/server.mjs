@@ -89,7 +89,7 @@ Critical rules:
    - Try search_tasks with the person's name or keyword
    - Check the "hint" field in list_tasks responses — it flags tasks that mention the person by name
    Only after 2-3 search strategies return nothing can you report "no matching tasks found". A single narrow query returning 0 is NOT sufficient for action requests.
-10. **Filters can be combined** in a single list_tasks call (e.g. assignee + excludeStatus + tag).
+10. **Filters are AND-combined** in a single list_tasks call (e.g. assignee + excludeStatus + tag = all three must match). For OR logic (e.g. "assigned to Leo OR tagged kids"), make separate calls and merge results.
 11. **Use get_stats for counting/comparison questions** — "who has the most tasks?", "what's the completion rate?", "how many are overdue?", "workload breakdown", "task distribution". It returns byStatus, overdue count, completionRate, and topAssignees without listing individual tasks. Do NOT call list_tasks per-person to count tasks when get_stats already provides this.
 12. **list_tasks priority filter is single-value.** It accepts ONE priority at a time. To get tasks across 2 priority levels (e.g. "high and urgent"), make 2 calls — one per priority. This is the correct approach.
 13. **CATEGORY queries → use TAG filters, NOT assignee.** "Kids' school tasks", "garden stuff", "health-related tasks" are CATEGORY queries — use list_tasks({tag: 'school'}), list_tasks({tag: 'garden'}), etc. Do NOT filter by assignee for these. Tasks ABOUT kids/school may be assigned to any family member (e.g. "Help Mia with science project" is assigned to Alex, not Mia). Only use assignee filter when the user asks about a SPECIFIC PERSON's workload (e.g. "what's on Sam's plate?").
@@ -109,6 +109,8 @@ Tips:
 • Use unassigned=true for tasks with NO assignee. Example: "unassigned urgent tasks" → list_tasks({unassigned: true, priority: 'urgent', excludeStatus: 'completed'}).
 • Use tag filter for known tags (garden, school, etc.) — more reliable than search_tasks.
 • For CATEGORY queries ("kids' school tasks", "garden stuff"), use the TAG filter — NOT the assignee filter. Tasks about kids/school/garden may be assigned to ANY family member. Example: "kids' school tasks" → list_tasks({tag: 'school', excludeStatus: 'completed'}) finds ALL school tasks regardless of who's assigned.
+
+⚠️ Filters are AND-combined — every specified filter must match. For OR logic (e.g. "tasks assigned to Leo OR tagged kids"), make separate calls: one list_tasks({assignee:'Leo'}) and one list_tasks({tag:'kids'}), then merge the results.
 
 Results sorted by priority (urgent→low), then due date. Paginated (default limit=50, check "hasMore").
 
@@ -307,7 +309,7 @@ server.tool(
 
 server.tool(
   'search_tasks',
-  `Freeform substring search across task titles, descriptions, and tags. Case-insensitive — "cook" matches "cooking class" and "cookbook". Try synonyms if the first search returns few results.
+  `Freeform substring search across task titles, descriptions, and tags. Case-insensitive — "cook" matches "cooking class" and "cookbook". Accepts ONE keyword per call. When the user mentions multiple distinct terms (e.g. "cooking or meals"), make one call per term. Try synonyms if the first search returns few results (e.g. "cook" → "meal" → "food").
 
 Returns paginated results (default limit=50, check "hasMore"). Fetch ALL pages before acting on results.
 
@@ -428,8 +430,8 @@ server.tool(
     description: z.string().optional().describe('Task description'),
     assignee: z.string().optional().describe('Person assigned to the task'),
     dueDate: z.string().optional().describe('Due date (YYYY-MM-DD)'),
-    priority: z.string().optional().describe('Task priority'),
-    tags: z.array(z.string()).optional().describe('Tags for the task'),
+    priority: z.string().optional().describe('Task priority: "low", "medium" (default), "high", or "urgent".'),
+    tags: z.array(z.string()).optional().describe('Tags for the task. Known tags: home, health, finance, errands, kids, garden, family, car, school.'),
   },
   async ({ title, description, assignee, dueDate, priority, tags }) => {
     const tasks = loadTasks();
