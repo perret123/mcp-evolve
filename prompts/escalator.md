@@ -16,6 +16,12 @@ Think about:
 - Real-world messiness (wrong item → undo → correct item → complete)
 - Features in the code that no test question has ever exercised
 
+IMPORTANT — also generate CORRECTNESS PROBES. These are questions that verify tools actually do what their descriptions claim:
+- If a tool says "search across all fields" — ask a question that requires matching on a non-obvious field (e.g. description or tags, not just title). Then the grader can catch if results are wrong.
+- If a tool says it sets a timestamp on state change — ask a question that requires reading that timestamp back.
+- If a tool says it returns an error for invalid input — ask a question that triggers that case and expects the error.
+- Read the IMPLEMENTATION, not just the description. Compare what the code actually does vs what the description promises. If they differ, that's a bug — write a question that exposes it.
+
 Rules:
 - Generate exactly 1 question per persona provided
 - The question must be a CONCRETE action or query a real user would say — not abstract
