@@ -153,7 +153,10 @@ Response shape: { tasks: [{ id, title, description, status, priority, assignee, 
 
 💡 "Someone's tasks" can mean tasks ASSIGNED to them OR tasks ABOUT them (mentioned in title/description but assigned to another family member). When assignee + other filters return 0 results, the response may include a "hint" field listing tasks that mention the person — follow the hint to broaden your search before concluding no tasks exist.
 
-💡 "The kids' tasks" = tasks assigned to Mia and/or Leo (the children). The tag "kids" is a CATEGORY tag for kid-related tasks that may be assigned to anyone. When the user says "kids' tasks" meaning Mia and Leo specifically, use assignee filters. When they say "kid-related tasks" or "tasks tagged kids", use tag='kids'.`,
+💡 "The kids' tasks" has TWO different meanings — determine which the user intends:
+  (A) Tasks ON the children's plate — chores/responsibilities ASSIGNED TO Mia or Leo (their own to-dos like mowing the lawn, returning library books). Use assignee filters. Appropriate when: "What's on Leo's plate?", "Does Mia have chores?"
+  (B) Tasks ABOUT/FOR the children — activities, appointments, events, errands involving the kids as beneficiaries, often assigned to adult caretakers like Sam or Alex (e.g. "Plan Leo's birthday party", "Help Mia with science project", "Schedule dentist for Mia"). Use tag='kids' for the category, or search_tasks with the child's name for tasks mentioning them. Appropriate when: "Anything for the kids?", "What's coming up for Mia?", "Can I help with something for the little ones?"
+  ⚠️ When a NON-household-member (grandparent, visitor) asks about "the kids", they almost always mean (B) — tasks about/for the children, NOT the children's chore list. Do NOT present a child's assigned chore (e.g. "Mow the lawn" assigned to Leo) as a "kid activity" or something someone could "help with for the kids."`,
   {
     overdue: z.boolean().optional().describe('**Use this for overdue queries.** Set to true to return ONLY tasks that are past due AND not completed. This is the correct way to answer "what is overdue?" — do NOT use dueBefore for overdue queries.'),
     status: z.string().optional().describe('Filter by status: "todo", "in_progress", or "completed". Aliases accepted (e.g. "pending"→todo, "done"→completed).'),
@@ -300,7 +303,7 @@ Response shape: { tasks: [{ id, title, description, status, priority, assignee, 
             (t.description && t.description.toLowerCase().includes(nameLower))
           );
           if (mentionTasks.length > 0) {
-            result.hint = `Showing ${totalFiltered} task(s) assigned to "${assignee}". FYI: ${mentionTasks.length} other task(s) mention "${assignee}" by name but are assigned to SOMEONE ELSE: ${mentionTasks.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee || 'unassigned'})`).join(', ')}. ⚠️ These are NOT "${assignee}'s" tasks — they belong to whoever they are assigned to. Only consider these if the user is asking about a CATEGORY (e.g. "all school tasks") rather than a specific person's task list/assignments.`;
+            result.hint = `⚠️ CRITICAL DISTINCTION: The ${totalFiltered} task(s) above are chores/responsibilities ASSIGNED TO "${assignee}" (${assignee}'s own to-do items). They are NOT necessarily tasks "about" or "for" ${assignee} as a beneficiary. Additionally, ${mentionTasks.length} other task(s) mention "${assignee}" by name but are assigned to SOMEONE ELSE: ${mentionTasks.map(t => `${t.id} "${t.title}" (assigned to ${t.assignee || 'unassigned'})`).join(', ')}. If the user is asking about tasks ABOUT/FOR "${assignee}" (e.g. "anything for the kids?", "what could I help with for ${assignee}?"), those mention-tasks are likely MORE relevant than the directly-assigned chores above.`;
           }
         }
       } else {
@@ -329,7 +332,7 @@ Response shape: { tasks: [{ id, title, description, status, priority, assignee, 
             `${t.id} "${t.title}" (assigned to ${t.assignee || 'unassigned'}, status=${t.status}, priority=${t.priority}, due=${t.dueDate || 'none'}, tags=[${(t.tags || []).join(', ')}])`
           ).join('; ');
 
-          result.hint = `Showing ${totalFiltered} task(s) directly ASSIGNED to "${assignee}". Additionally, ${mentionedElsewhere.length} active (non-completed) task(s) assigned to OTHER family members mention "${assignee}" by name in their title/description — here are their details: ${mentionedDetails}.${mentionedElsewhere.length > 10 ? ` (showing first 10 of ${mentionedElsewhere.length} — use search_tasks("${assignee}") for the full list.)` : ''} ⚠️ These tasks belong to whoever they are ASSIGNED to — only include them if the user is asking about tasks RELATED TO "${assignee}" (e.g. "tasks for the kids", "what's coming up for Mia") rather than "${assignee}'s assignments/workload".`;
+          result.hint = `⚠️ CRITICAL DISTINCTION: The ${totalFiltered} task(s) in the results above are chores/responsibilities ASSIGNED TO "${assignee}" — these are ${assignee}'s OWN to-do items (things ${assignee} is responsible for doing, like household chores). They are NOT tasks "about" or "for" ${assignee} as a beneficiary. Do NOT present these assigned chores as "things for ${assignee}" or "kid activities" — they are just ${assignee}'s workload. If the user is asking about tasks ABOUT/FOR ${assignee} (e.g. "anything for the kids?", "what's coming up for ${assignee}?", "what could I help with regarding ${assignee}?"), use the following ${mentionedElsewhere.length} task(s) instead — these are tasks where ${assignee} is the SUBJECT/BENEFICIARY, assigned to other family members who are handling them: ${mentionedDetails}.${mentionedElsewhere.length > 10 ? ` (showing first 10 of ${mentionedElsewhere.length} — use search_tasks("${assignee}") for the full list.)` : ''} Also consider list_tasks({tag: 'kids'}) for all kid-related activities regardless of which child they mention.`;
         }
       }
     }
