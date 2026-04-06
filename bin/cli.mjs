@@ -21,10 +21,10 @@ import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
 import { loadConfig, validateConfig } from '../lib/config.mjs';
 import { run } from '../lib/run.mjs';
-import { init } from '../lib/init.mjs';
+import { scaffoldInit, fullInit } from '../lib/init.mjs';
 import { printPersonaMap } from '../lib/personas.mjs';
 import { getFullSummary, loadMetrics, getStalePersonas, getSuccessRateTrend } from '../lib/metrics.mjs';
-import { loadGoldenSet, checkStreak } from '../lib/eval.mjs';
+import { loadGoldenSet, loadQuestionSet, getQuestionsByGroup, checkStreak } from '../lib/eval.mjs';
 
 const { values: args, positionals } = parseArgs({
   options: {
@@ -89,17 +89,30 @@ Options:
 }
 
 if (command === 'init') {
+  // If no config exists, scaffold first
   const root = resolve('.');
-  console.log('Initializing mcp-evolve...');
-  const created = init(root);
-  if (created.length > 0) {
-    console.log(`Created: ${created.join(', ')}`);
-    console.log('\nNext steps:');
-    console.log('  1. Edit evolve.config.mjs — add your personas and MCP server config');
-    console.log('  2. Edit mcp-evolve.json — point to your MCP server');
-    console.log('  3. Run: npx mcp-evolve --dry-run');
+  const configPath = args.config ? resolve(root, args.config) : null;
+
+  if (!configPath) {
+    console.log('Scaffolding mcp-evolve...');
+    const created = scaffoldInit(root);
+    if (created.length > 0) {
+      console.log(`Created: ${created.join(', ')}`);
+      console.log('\nNext steps:');
+      console.log('  1. Edit evolve.config.mjs — add your MCP server config');
+      console.log('  2. Run: mcp-evolve init -c evolve.config.mjs');
+    }
+    process.exit(0);
+  }
+
+  // Full init: generate question set
+  const initConfig = await loadConfig('.', configPath);
+  const qs = await fullInit(initConfig);
+  if (qs) {
+    console.log(`\nInit complete. Run: mcp-evolve -c ${args.config}`);
   } else {
-    console.log('Everything already exists.');
+    console.error('Init failed.');
+    process.exit(1);
   }
   process.exit(0);
 }
@@ -121,10 +134,21 @@ if (command === 'status') {
     const streak = checkStreak(3, config);
     console.log(`Streak: ${streak.streak} consecutive 100%`);
 
-    const gs = loadGoldenSet(config);
-    console.log(`\nGolden set: ${gs.questions.length} questions`);
-    for (const q of gs.questions) {
-      console.log(`  [${q.persona}] ${q.question.slice(0, 80)}`);
+    const qs = loadQuestionSet(config);
+    if (qs) {
+      const train = getQuestionsByGroup(qs, 'train');
+      const golden = getQuestionsByGroup(qs, 'golden');
+      console.log(`\nQuestion set: ${qs.questions.length} total (${train.length} train, ${golden.length} golden)`);
+      for (const q of qs.questions) {
+        const badge = q.group === 'golden' ? '[golden]' : `[train ${q.consecutivePasses || 0}/${config.graduationStreak || 10}]`;
+        console.log(`  ${badge} [${q.persona}] ${q.question.slice(0, 70)}`);
+      }
+    } else {
+      const gs = loadGoldenSet(config);
+      console.log(`\nGolden set (legacy): ${gs.questions.length} questions`);
+      for (const q of gs.questions) {
+        console.log(`  [${q.persona}] ${q.question.slice(0, 80)}`);
+      }
     }
 
     const stale = getStalePersonas(config, 3);
