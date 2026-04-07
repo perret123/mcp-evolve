@@ -287,7 +287,7 @@ npx mcp-evolve -c self-test/evolve.config.mjs --dry-run
 
 ## The story
 
-mcp-evolve was born from testing the [Pubman](https://github.com/mperret/pubmanager) restaurant POS MCP server. Key discoveries along the way:
+mcp-evolve was born from testing a restaurant POS MCP server. Key discoveries along the way:
 
 1. **The scorer lied.** `ACTION_PATTERN.test(undefined)` returned `false`, making action failures invisible. Three "100% success" cycles were fake. Lesson: score what matters.
 
