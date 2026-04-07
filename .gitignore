@@ -1,4 +1,5 @@
 node_modules/
+.claude/settings.local.json
 .mcp-evolve/logs/
 .mcp-evolve/baselines/
 .mcp-evolve/metrics.json

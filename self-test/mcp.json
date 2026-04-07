@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mcp-evolve-self": {
+      "command": "node",
+      "args": ["self-test/server.mjs"],
+      "env": {
+        "MCP_EVOLVE_DATA_DIR": ".mcp-evolve"
+      }
+    }
+  }
+}

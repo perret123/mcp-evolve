@@ -1,0 +1,42 @@
+[
+  {
+    "id": "doc-001",
+    "title": "Onboarding Guide",
+    "content": "Welcome to EvolveCorp. This guide covers the basics of our culture and systems. Please ensure you have completed your profile on the HR portal.",
+    "category": "HR",
+    "createdAt": "2026-01-10T09:00:00Z",
+    "lastModified": "2026-01-10T09:00:00Z"
+  },
+  {
+    "id": "doc-002",
+    "title": "Coding Standards",
+    "content": "We follow clean code principles. Use descriptive naming, keep functions small, and always write tests for new features. We use TypeScript for all projects.",
+    "category": "Engineering",
+    "createdAt": "2026-01-12T14:30:00Z",
+    "lastModified": "2026-01-12T14:30:00Z"
+  },
+  {
+    "id": "doc-003",
+    "title": "Incident Response Plan",
+    "content": "In case of a security breach, notify the security team immediately. Do not disclose details to external parties without approval from the Legal department.",
+    "category": "Security",
+    "createdAt": "2026-02-01T10:15:00Z",
+    "lastModified": "2026-02-01T10:15:00Z"
+  },
+  {
+    "id": "doc-004",
+    "title": "Remote Work Policy",
+    "content": "Employees are eligible for up to 3 days of remote work per week. Ensure your home office meets our safety and security requirements.",
+    "category": "HR",
+    "createdAt": "2026-02-05T08:00:00Z",
+    "lastModified": "2026-02-05T08:00:00Z"
+  },
+  {
+    "id": "doc-005",
+    "title": "Deployment Pipeline",
+    "content": "Our CI/CD pipeline runs on GitHub Actions. All PRs must pass linting and unit tests before they can be merged into the main branch.",
+    "category": "Engineering",
+    "createdAt": "2026-03-01T11:00:00Z",
+    "lastModified": "2026-03-01T11:00:00Z"
+  }
+]

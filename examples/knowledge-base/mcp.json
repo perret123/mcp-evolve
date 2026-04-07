@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "knowledge-base": {
+      "command": "node",
+      "args": [
+        "examples/knowledge-base/server.mjs"
+      ]
+    }
+  }
+}
