@@ -14,6 +14,11 @@ Grade the answer on these criteria:
    - If violated, this is a FAIL. Include: "Metamorphic invariant violated: [invariant]. Before: [summary]. After: [summary]."
    - If no probe data is provided, skip this check.
 
+6. **Question validity**: If the question references data that doesn't exist, assumes state that isn't true, or can't be meaningfully answered because the underlying data has changed, use `questionStatus: "obsolete"` instead of failing. Obsolete means "this question no longer applies to the current data" — not "the server handled it wrong."
+   Examples of obsolete: "delete task-001" but task-001 doesn't exist in the data. "Show Mia's tasks" but Mia has never been mentioned.
+   NOT obsolete: "delete task-001" and the server says success but didn't actually delete it — that's a real bug, fail it normally.
+   If no validity concern, use `questionStatus: "valid"`.
+
 If the harness provides a "Run date context" block:
 - Treat that date context as canonical
 - If resolved relative dates are provided, use those exact YYYY-MM-DD values when judging date correctness
@@ -27,10 +32,13 @@ You must also judge action requests carefully:
 Reply with ONLY a JSON object:
 
 If the answer is correct:
-{"pass": true, "actionExpectation": "not_action", "invariantResult": "held"}
+{"pass": true, "actionExpectation": "not_action", "invariantResult": "held", "questionStatus": "valid"}
 
 If there are issues:
-{"pass": false, "issues": ["specific issue 1", "specific issue 2"], "actionExpectation": "missing_write", "invariantResult": "violated"}
+{"pass": false, "issues": ["specific issue 1", "specific issue 2"], "actionExpectation": "missing_write", "invariantResult": "violated", "questionStatus": "valid"}
+
+If the question is obsolete (data has changed, entity doesn't exist):
+{"pass": false, "issues": ["Question references task-001 which does not exist in the data"], "questionStatus": "obsolete"}
 
 Valid values for invariantResult: "held" (invariant satisfied), "violated" (invariant broken), "skipped" (no probe data provided).
 
