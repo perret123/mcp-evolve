@@ -71,6 +71,18 @@ test('aggregateScores uses actionRequirementMet for action completion', () => {
   assert.equal(scores.actionCompletionRate, '50.0');
 });
 
+test('obsolete questions are excluded from aggregate scoring', () => {
+  const scored = [
+    { score: { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 3, isActionRequest: false, obsolete: false } },
+    { score: { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 2, isActionRequest: false, obsolete: false } },
+    { score: { completed: false, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 0, isActionRequest: false, obsolete: true } },
+  ];
+  const agg = aggregateScores(scored);
+  assert.strictEqual(agg.total, 2);
+  assert.strictEqual(agg.successRate, '100.0');
+  assert.strictEqual(agg.obsoleteCount, 1);
+});
+
 test('classifyErrorCategory separates harness, model, and server failures', () => {
   assert.equal(classifyErrorCategory({
     tool: 'harness:tool-availability',
