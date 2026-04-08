@@ -40,8 +40,8 @@ export default {
 
   // --- Model configuration ---
   // Local model for most roles, Claude for fixing (needs Edit/Read tools).
-  answererModel: 'ollama:gemma4:e4b',
-  graderModel: 'ollama:gemma4:e4b',
+  answererModel: 'ollama:gemma4:26b',
+  graderModel: 'ollama:gemma4:26b',
   questionModel: 'ollama:gemma4:e4b',
   fixerModel: 'sonnet',
   reviewerModel: 'sonnet',
@@ -49,6 +49,12 @@ export default {
   proposalModel: 'ollama:gemma4:e4b',
   voterModel: 'ollama:gemma4:e4b',
   probeModel: 'ollama:gemma4:e4b',
+
+  maxTrainPerRun: 10,
+  maxGoldenPerRun: 10,
+
+  localContextWindow: 100000,
+  localMaxPredict: 1024,
 
   questionsPerPersona: 2,
   language: 'English',

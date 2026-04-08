@@ -1,0 +1,119 @@
+{
+  "description": "Golden set — permanently tracked regression questions. Questions are promoted here after a fix-and-replay cycle proves they work. They run on every test to prevent regressions.",
+  "maxSize": 50,
+  "questions": [
+    {
+      "persona": "owner",
+      "group": "train",
+      "question": "Show me a preview of today's daily turnover for our main location — I want to see what it would look like before we actually close the day. Also, are there any cancelled transactions from today that we might need to restore before we finalize?",
+      "promotedAt": "2026-04-04T03:29:08.700Z",
+      "fixCycle": {
+        "timestamp": "2026-04-04T03:29:08.700Z",
+        "source": "escalation",
+        "reason": "Tests finalize_daily_turnover with preview:true (untested parameter), list_transactions filtered by date, and restore_cancelled_transaction awareness. Requires get_business_config for locationId, list_transactions with fromDate/toDate, and finalize_daily_turnover with preview=true. The preview parameter in finalizeDailyTurnover is a completely untested code path that returns aggregated data without committing. Also tests whether cancelled transactions (isCancelled flag) are surfaced correctly."
+      }
+    },
+    {
+      "persona": "waiter-orders",
+      "group": "train",
+      "question": "The guest at table 5 ordered a Schnitzel by mistake — take it off and put a Zürcher Geschnetzeltes on instead.",
+      "promotedAt": "2026-04-04T03:29:08.702Z",
+      "fixCycle": {
+        "timestamp": "2026-04-04T03:29:08.702Z",
+        "source": "escalation",
+        "reason": "Tests delete_guest_product followed by create_guest_products — a real-world correction workflow never exercised. Requires get_floor_status(includeGuests:true) to find the guestId at table 5, get_guest_details to find the specific product ID for the Schnitzel, delete_guest_product with that productId, then get_menu_data(search) + create_guest_products for the replacement. This exercises the soft-delete flow in deleteGuestProduct (which decrements totalBillInt) and then the add flow, testing that the guest's running total stays correct across both operations."
+      }
+    },
+    {
+      "persona": "floor-manager",
+      "group": "train",
+      "question": "Move the guest from table 3 to table 7, then split off the 2 Tafelwasser onto a new guest at table 7 — they want separate bills.",
+      "promotedAt": "2026-04-04T03:29:08.702Z",
+      "fixCycle": {
+        "timestamp": "2026-04-04T03:29:08.702Z",
+        "source": "escalation",
+        "reason": "Tests manage_guest for table move (guestContainerId change) and transfer_products for bill splitting — both completely untested tools. Requires get_floor_status(includeGuests:true) to find guestId and guestContainerIds, manage_guest to move guest to table 7's container, then manage_guest again to create a new temporary guest at table 7, get_guest_details to find the Tafelwasser product IDs, and finally transfer_products(fromGuestId, toGuestId, productIds). This chain exercises the transactional container seat management (prepareRemoveGuestFromContainer + prepareAddGuestToContainer) and the product transfer with FieldValue.increment for totalBillInt on both guests."
+      }
+    },
+    {
+      "persona": "waiter-payments",
+      "group": "eval",
+      "question": "Table 5 wants to pay. They have Appenzeller Weissbier and a Kalbs-Schnitzel — the total should be split: CHF 20 on card and the rest in cash.",
+      "promotedAt": "2026-04-04T03:29:08.702Z",
+      "fixCycle": {
+        "timestamp": "2026-04-04T03:29:08.702Z",
+        "source": "escalation",
+        "reason": "Tests the full checkout workflow via create_transaction with split payments — completely untested. Requires get_floor_status(includeGuests:true) to find the guestId, get_guest_details to confirm the bill total and products, get_business_config(include:['paymentOptions']) for payment option IDs, get_staff_data for employeeId, then create_transaction with two payment entries (card + cash) where amounts must sum to the bill. Tests the payment validation logic, tip calculation (tipCents = max(0, totalPayments - totalPrice)), and the full finalization pipeline including moving guestProducts to transactionProducts."
+      }
+    },
+    {
+      "persona": "qa-lead",
+      "question": "How do I tell if the test harness has hit a plateau? Show me the current metrics summary and stale personas — I want to understand whether escalation has been triggering productively or if we've exhausted the current test surface area.",
+      "promotedAt": "2026-04-04T09:16:39.769Z",
+      "fixCycle": {
+        "source": "manual",
+        "reason": "No golden question currently covers plateau detection or escalation mechanics. This question exercises get_metrics_summary (for plateau detection flags and escalation stats) and get_stale_personas (for consecutive-pass staleness), ensuring the system can correctly surface plateau state and escalation productivity — a core self-improvement loop that was completely untested in the golden set."
+      }
+    },
+    {
+      "persona": "alex",
+      "group": "train",
+      "question": "The passport renewal task is a mess — it's overdue and I'm just going to do a walk-in at the post office instead. Delete that task entirely, create a fresh one called 'Passport walk-in at post office' assigned to me, due next Wednesday, same medium priority, tagged 'errands', and then show me my full list of overdue items to make sure nothing else is slipping.",
+      "promotedAt": "2026-04-05T20:31:38.142Z",
+      "fixCycle": {
+        "timestamp": "2026-04-05T20:31:38.142Z",
+        "source": "escalation",
+        "reason": "Tests delete_task (completely untested tool — 0 questions exercise it), create_task as a replacement with explicit tags/priority/dueDate, and a verify step via list_tasks with dueBefore. The delete→recreate→verify chain is 5+ tool calls and exercises the only destructive write tool that has never been touched."
+      },
+      "consecutiveFails": 0
+    },
+    {
+      "persona": "sam",
+      "group": "train",
+      "question": "I need to juggle some things — can you pull up the full details on Leo's birthday party task, then bump the vacuum cleaner order from low to high priority since we need it before the party, and push the swim lessons due date out to June 1st so we're not overwhelmed? After that show me everything that's currently high or urgent priority so I can see the new picture.",
+      "promotedAt": "2026-04-05T20:31:38.143Z",
+      "fixCycle": {
+        "timestamp": "2026-04-05T20:31:38.143Z",
+        "source": "escalation",
+        "reason": "Tests update_task for priority change (task-107 low→high) and dueDate rescheduling (task-114 date change) — both are untested update_task field mutations. Also tests get_task for full description retrieval (never directly called) and list_tasks with priority filter (never used). The reprioritize + reschedule + verify pattern is 5+ calls covering 3 untested parameters."
+      },
+      "consecutiveFails": 0
+    },
+    {
+      "persona": "mia",
+      "group": "eval",
+      "question": "ok wait that donation bags task is literally mine but i cant even drive so how am i supposed to drop stuff off lol, can you switch that to my dad and also pull up the full details on it bc i forgot what it even is, and while youre at it check if i have literally anything else left or if im finally free",
+      "promotedAt": "2026-04-05T20:31:38.143Z",
+      "fixCycle": {
+        "timestamp": "2026-04-05T20:31:38.143Z",
+        "source": "escalation",
+        "reason": "Tests update_task for assignee reassignment (task-109 Mia→Alex) which has never been tested — only status changes have been exercised. Also tests get_task by ID for the description field (never retrieved directly) and a verify step via list_tasks(assignee=Mia). The reassign→verify-details→check-remaining chain exercises the completely untested assignee mutation path on line 253 of server.mjs."
+      },
+      "consecutiveFails": 0
+    },
+    {
+      "persona": "grandma",
+      "group": "train",
+      "question": "Oh, I just realized — are there any tasks that nobody's been assigned to yet? I'd hate for things to fall through the cracks! If you can find them, I'd like to pick one up. That summer vacation planning one sounds like something I could help with — could you update it with a description saying I'll research beach rental options, and bump it up to high priority since summer will be here before we know it?",
+      "promotedAt": "2026-04-05T20:31:38.143Z",
+      "fixCycle": {
+        "timestamp": "2026-04-05T20:31:38.143Z",
+        "source": "escalation",
+        "reason": "Tests querying for unassigned tasks — a critical edge case because list_tasks assignee filter is z.string().optional() (server.mjs line 58) so null assignee CANNOT be filtered directly, forcing a workaround (list all non-completed → client-side filter). Also tests update_task for description AND priority change simultaneously on task-111, which are both untested field mutations. No existing question has ever targeted null-assignee tasks."
+      },
+      "consecutiveFails": 0
+    },
+    {
+      "persona": "neighbor",
+      "group": "eval",
+      "question": "Hey so I'm doing the math in my head — can you pull up the overall stats, and then separately show me every task that's still open and flagged as urgent? I want to see if the urgent stuff is piling up on one person or if it's spread around. And while you're at it, what's the deal with tasks that don't have anyone assigned — how many of those are just floating out there with no owner?",
+      "promotedAt": "2026-04-05T20:31:38.143Z",
+      "fixCycle": {
+        "timestamp": "2026-04-05T20:31:38.143Z",
+        "source": "escalation",
+        "reason": "Tests list_tasks with priority='urgent' filter (completely untested parameter — no question has ever filtered by priority), cross-referencing get_stats aggregates against filtered list_tasks results for analytical consistency, and querying unassigned tasks (null assignee edge case). Forces 4+ tool calls with the untested priority filter path on server.mjs line 74 and the null-assignee discovery problem."
+      },
+      "consecutiveFails": 0
+    }
+  ]
+}
