@@ -102,5 +102,6 @@ Knowledge base in `self-test/knowledge/` — update with `/knowledge-qa` skill.
 
 ## Task Manager Example
 `examples/task-manager/` — family task manager with 120 seeded tasks, 7 tools, 5 personas.
-See `docs/RESULTS-ROUND-1.md` for 35-run proof of concept results.
+See `docs/RESULTS-ROUND-1.md` through `docs/RESULTS-ROUND-4.md` for proof of concept results.
 Round 2 starts from original server (planted bugs + sloppy descriptions) with all mcp-evolve improvements.
+Round 3 introduced fixed question sets with graduation and escalation-on-graduation.
