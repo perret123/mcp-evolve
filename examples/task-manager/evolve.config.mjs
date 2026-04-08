@@ -40,21 +40,21 @@ export default {
 
   // --- Model configuration ---
   // Local model for most roles, Claude for fixing (needs Edit/Read tools).
-  answererModel: 'ollama:gemma4:26b',
-  graderModel: 'ollama:gemma4:26b',
-  questionModel: 'ollama:gemma4:e4b',
+  answererModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
+  graderModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
+  questionModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
   fixerModel: 'sonnet',
   reviewerModel: 'sonnet',
-  escalatorModel: 'ollama:gemma4:e4b',
-  proposalModel: 'ollama:gemma4:e4b',
-  voterModel: 'ollama:gemma4:e4b',
-  probeModel: 'ollama:gemma4:e4b',
+  escalatorModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
+  proposalModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
+  voterModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
+  probeModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
 
   maxTrainPerRun: 10,
   maxGoldenPerRun: 10,
 
   localContextWindow: 100000,
-  localMaxPredict: 1024,
+  localMaxPredict: 8182,
 
   questionsPerPersona: 2,
   language: 'English',
