@@ -39,15 +39,16 @@ export default {
   dataDir: join(EXAMPLE_DIR, '.mcp-evolve'),
 
   // --- Model configuration ---
-  // All roles default to sonnet. Override individual roles to test with stronger/weaker models.
-  answererModel: 'sonnet',
-  graderModel: 'sonnet',
-  questionModel: 'sonnet',
+  // Local model for most roles, Claude for fixing (needs Edit/Read tools).
+  answererModel: 'ollama:gemma4:e4b',
+  graderModel: 'ollama:gemma4:e4b',
+  questionModel: 'ollama:gemma4:e4b',
   fixerModel: 'sonnet',
   reviewerModel: 'sonnet',
-  escalatorModel: 'sonnet',
-  proposalModel: 'sonnet',
-  voterModel: 'sonnet',
+  escalatorModel: 'ollama:gemma4:e4b',
+  proposalModel: 'ollama:gemma4:e4b',
+  voterModel: 'ollama:gemma4:e4b',
+  probeModel: 'ollama:gemma4:e4b',
 
   questionsPerPersona: 2,
   language: 'English',

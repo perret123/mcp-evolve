@@ -71,6 +71,16 @@ SEED → GENERATE (Sonnet) → ANSWER (Opus, name-only user context)
 - `voterModel`: voting in competition
 - `probeModel`: metamorphic probes (default: haiku)
 
+### Model Providers
+Models can be prefixed with a provider:
+- `sonnet`, `opus`, `haiku` — Claude via CLI (default)
+- `ollama:<model>` — Ollama (localhost:11434), e.g. `ollama:gemma4:e4b`
+- `lmstudio:<model>` — LM Studio (localhost:1234)
+
+Local models use the OpenAI-compatible `/v1/chat/completions` API.
+For tool-calling roles (answerer, probes), local models connect to MCP servers directly via `lib/mcp-client.mjs`.
+Fixer/reviewer must stay on Claude — they need Claude Code's built-in Edit/Read tools.
+
 ## Competition Configuration
 - `competitionGroups`: number of groups (default: 3)
 - `competitionGroupSize`: personas per group (default: auto)
