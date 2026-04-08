@@ -59,6 +59,7 @@ SEED → GENERATE (Sonnet) → ANSWER (Opus, name-only user context)
 - **Every question has a probe** — before/after reads check state invariants (metamorphic testing)
 - **Probes are invisible to the answerer** — it only sees the natural question
 - **Probe model is cheap** (haiku) — probes are simple reads
+- **Grader can mark questions obsolete** — when preconditions aren't met (entity deleted, data drifted), question is permanently skipped
 
 ## Model Configuration (all configurable in evolve.config.mjs, all default to sonnet)
 - `questionModel`: question generation
