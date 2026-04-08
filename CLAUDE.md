@@ -50,7 +50,7 @@ SEED → GENERATE (Sonnet) → ANSWER (Opus, name-only user context)
 ## Key Design Decisions
 - **Answerer gets name only** (like auth session), not full persona — realistic MCP simulation
 - **Grader gets name too** — consistent with what answerer knows
-- **Fixer cannot create new tools** — only fix existing ones. New tools come from feature competition.
+- **Fixer can create tools if the API supports it** — wrapping existing API capabilities is fine. Inventing new capabilities comes from feature competition.
 - **Never optimize for fewer tool calls** — correctness over efficiency. Fixer/reviewer must not add "minimize calls" language.
 - **No truncation** in grader — full tool results are worth the tokens
 - **Parallel fixers** in isolated git worktrees, merged by Claude
@@ -60,6 +60,8 @@ SEED → GENERATE (Sonnet) → ANSWER (Opus, name-only user context)
 - **Probes are invisible to the answerer** — it only sees the natural question
 - **Probe model is cheap** (haiku) — probes are simple reads
 - **Grader can mark questions obsolete** — when preconditions aren't met (entity deleted, data drifted), question is permanently skipped
+- **KL drift guard on escalation** — Jensen-Shannon divergence checks escalated questions against baseline/golden distribution. Prevents escalation from drifting into unrealistic territory. Action configurable: warn (default), reject, or regenerate.
+- **Entropy floor protects randomness** — Shannon entropy monitors persona/tool coverage. Warns when testing focus concentrates too much, preserving realistic random question distribution.
 
 ## Model Configuration (all configurable in evolve.config.mjs, all default to sonnet)
 - `questionModel`: question generation
@@ -87,6 +89,12 @@ Fixer/reviewer must stay on Claude — they need Claude Code's built-in Edit/Rea
 - `competitionGroupSize`: personas per group (default: auto)
 - `competitionStreakMultiplier`: streak multiplier for trigger (default: 2x threshold)
 - `competitionTestQuestions`: test questions per winning feature (default: 3)
+
+## Distribution Guards
+- `driftThreshold`: JSD threshold for escalation drift (default: 0.4, higher = more permissive)
+- `driftAction`: action on high drift — `'warn'` (default), `'reject'`, `'regenerate'`
+- `personaEntropyFloor`: minimum persona entropy ratio before warning (default: 0.7)
+- `toolEntropyFloor`: minimum tool entropy ratio before warning (default: 0.5)
 
 ## Self-test
 The self-test MCP server (`self-test/server.mjs`) wraps mcp-evolve's own data as MCP tools.
