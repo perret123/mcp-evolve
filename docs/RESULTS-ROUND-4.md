@@ -141,6 +141,31 @@ GENERATE (local) → PROBE (local) → ANSWER (local + MCP tools) → PROBE (loc
 
 Only the fixer uses Claude API (needs Edit/Read tools). Everything else runs at zero API cost.
 
+## All 3 Planted Bugs Fixed
+
+The fixer (Claude Sonnet) found and fixed **all 3 planted bugs** plus the sloppiness issue, producing a 222-line diff to `server.mjs`. The fixes were applied incrementally across runs 18-26 via worktree branches that were merged after successful replay.
+
+### 1. `search_tasks` — title-only search (FIXED)
+- **Before:** `tasks.filter(t => t.title.toLowerCase().includes(q))`
+- **After:** Searches title, description, AND tags
+
+### 2. `update_task` — missing completedAt (FIXED)
+- **Before:** Generic field loop that never set `completedAt` when status → "completed"
+- **After:** Explicitly sets `completedAt` timestamp on completion
+
+### 3. `delete_task` — silent success (FIXED)
+- **Before:** Always returned `{success: true}` even when task didn't exist
+- **After:** Checks task exists, returns error if not found
+
+### 4. `get_task` — null return (FIXED)
+- **Before:** Returned `null` for missing tasks
+- **After:** Returns proper error message
+
+### Beyond bug fixes
+The fixer also massively expanded `list_tasks` with new filter parameters: `unassigned`, `excludeAssignee`, `tag` (array support), `excludeTag`, `overdue`, `completedAfter`, `completedBefore`, `excludePriority`. All tool descriptions were rewritten with detailed usage guidance. All `PLANTED BUG` comments were removed.
+
+**Note:** The server still had `// PLANTED BUG` comments that made fixes easier to find. Future rounds should remove these hints.
+
 ## What Changed in This Session
 
 ### New Features
