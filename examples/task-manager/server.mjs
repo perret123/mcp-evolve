@@ -89,7 +89,6 @@ server.tool(
   async ({ id }) => {
     const tasks = loadTasks();
     const task = tasks.find(t => t.id === id);
-    // PLANTED SLOPPINESS: returns null instead of an error message when task not found
     return { content: [{ type: 'text', text: JSON.stringify(task || null) }] };
   },
 );
@@ -101,7 +100,6 @@ server.tool(
   async ({ query }) => {
     const tasks = loadTasks();
     const q = query.toLowerCase();
-    // PLANTED BUG: only searches title, not description or tags
     const matches = tasks.filter(t => t.title.toLowerCase().includes(q));
 
     const summaries = matches.map(t => ({
@@ -235,7 +233,6 @@ server.tool(
     const wasCompleted = task.status === 'completed';
     const fields = { title, description, status, priority, assignee, dueDate, tags };
 
-    // PLANTED BUG: generic field update loop — does NOT set completedAt when status → "completed"
     for (const [key, val] of Object.entries(fields)) {
       if (val !== undefined) {
         task[key] = val;
@@ -259,7 +256,6 @@ server.tool(
   { id: z.string().describe('Task ID to delete') },
   async ({ id }) => {
     const tasks = loadTasks();
-    // PLANTED BUG: filters and saves regardless of whether task existed — always returns success
     const filtered = tasks.filter(t => t.id !== id);
     saveTasks(filtered);
     return { content: [{ type: 'text', text: JSON.stringify({ success: true, id }) }] };
