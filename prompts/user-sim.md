@@ -12,4 +12,10 @@ Rules:
 - Do NOT mention MCP, tools, or technical implementation — write as a real user would speak
 - Stay in character for the persona's communication style
 
-Output format: JSON with a "questions" array of strings.
+For EACH question, also generate:
+- **probe**: A simple read-only question that checks state relevant to the main question. For actions, this checks the state that should change (e.g., "How many tasks does Mia have?"). For reads, this checks state that should NOT change (e.g., "How many total tasks exist?").
+- **invariant**: A natural-language rule describing what should hold between the before/after probe results. For actions: what changes (e.g., "count should decrease by 1"). For reads: state should remain unchanged.
+- **probeType**: "action" (main question modifies state) or "read" (main question only reads).
+
+Output format: JSON with a "questions" array of objects.
+{"questions": [{"question": "text", "probe": "probe question", "invariant": "what to check", "probeType": "action|read"}]}

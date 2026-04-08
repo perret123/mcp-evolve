@@ -21,5 +21,8 @@ Reply with ONLY a JSON object:
   "name": "Short feature name",
   "description": "What it does in 1-2 sentences",
   "why": "Why your personas need this",
-  "testQuestion": "An example question that would test this feature"
+  "testQuestion": "An example question that would test this feature",
+  "testProbe": "A read question to check state before/after the test",
+  "testInvariant": "What should change after the test question",
+  "testProbeType": "action"
 }

@@ -56,6 +56,9 @@ SEED → GENERATE (Sonnet) → ANSWER (Opus, name-only user context)
 - **Parallel fixers** in isolated git worktrees, merged by Claude
 - **Escalation uses relative dates** ("next week", not "April 10th") — stays valid across runs
 - **Replay always runs** after fixing (not gated on buildCommand)
+- **Every question has a probe** — before/after reads check state invariants (metamorphic testing)
+- **Probes are invisible to the answerer** — it only sees the natural question
+- **Probe model is cheap** (haiku) — probes are simple reads
 
 ## Model Configuration (all configurable in evolve.config.mjs, all default to sonnet)
 - `questionModel`: question generation
@@ -66,6 +69,7 @@ SEED → GENERATE (Sonnet) → ANSWER (Opus, name-only user context)
 - `escalatorModel`: escalation questions
 - `proposalModel`: feature proposals in competition
 - `voterModel`: voting in competition
+- `probeModel`: metamorphic probes (default: haiku)
 
 ## Competition Configuration
 - `competitionGroups`: number of groups (default: 3)

@@ -20,4 +20,9 @@ Rules:
 - ALWAYS use relative dates: "this week", "next Monday", "in the next 2 weeks" — NEVER absolute dates
 - In the "why" field, note what tool/parameter/data area this question covers that existing questions don't
 
-Output JSON only: {"questions": [{"persona": "persona-id", "question": "the question", "why": "what this covers that isn't tested yet"}]}
+For EACH question, also generate:
+- **probe**: A simple read-only question that checks state relevant to the main question (before/after comparison).
+- **invariant**: What should hold between probe results. For actions: what changes. For reads: state stays the same.
+- **probeType**: "action" or "read".
+
+Output JSON only: {"questions": [{"persona": "persona-id", "question": "the question", "why": "what this covers", "probe": "probe question", "invariant": "what to check", "probeType": "action|read"}]}
