@@ -8,7 +8,9 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2025-10-08",
       "createdAt": "2025-09-28T09:00:00Z",
       "completedAt": "2025-10-07T18:30:00Z"
@@ -20,7 +22,10 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["health", "errands"],
+      "tags": [
+        "health",
+        "errands"
+      ],
       "dueDate": "2025-10-10",
       "createdAt": "2025-10-05T11:00:00Z",
       "completedAt": "2025-10-10T16:45:00Z"
@@ -32,7 +37,9 @@
       "status": "completed",
       "priority": "urgent",
       "assignee": "Sam",
-      "tags": ["finance"],
+      "tags": [
+        "finance"
+      ],
       "dueDate": "2025-10-12",
       "createdAt": "2025-10-01T08:00:00Z",
       "completedAt": "2025-10-11T10:20:00Z"
@@ -44,7 +51,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["kids", "errands"],
+      "tags": [
+        "kids",
+        "errands"
+      ],
       "dueDate": "2025-10-15",
       "createdAt": "2025-10-08T14:00:00Z",
       "completedAt": "2025-10-14T17:00:00Z"
@@ -56,7 +66,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2025-10-20",
       "createdAt": "2025-10-07T09:30:00Z",
       "completedAt": "2025-10-19T11:00:00Z"
@@ -68,7 +80,10 @@
       "status": "completed",
       "priority": "urgent",
       "assignee": "Sam",
-      "tags": ["kids", "school"],
+      "tags": [
+        "kids",
+        "school"
+      ],
       "dueDate": "2025-10-22",
       "createdAt": "2025-10-10T10:00:00Z",
       "completedAt": "2025-10-21T15:30:00Z"
@@ -80,7 +95,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Leo",
-      "tags": ["garden"],
+      "tags": [
+        "garden"
+      ],
       "dueDate": "2025-10-25",
       "createdAt": "2025-10-18T08:00:00Z",
       "completedAt": "2025-10-25T14:00:00Z"
@@ -92,7 +109,10 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Mia",
-      "tags": ["errands", "kids"],
+      "tags": [
+        "errands",
+        "kids"
+      ],
       "dueDate": "2025-10-28",
       "createdAt": "2025-10-20T13:00:00Z",
       "completedAt": "2025-10-27T16:00:00Z"
@@ -104,7 +124,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["kids", "family"],
+      "tags": [
+        "kids",
+        "family"
+      ],
       "dueDate": "2025-10-28",
       "createdAt": "2025-10-15T09:00:00Z",
       "completedAt": "2025-10-26T13:30:00Z"
@@ -116,19 +139,23 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2025-10-31",
       "createdAt": "2025-10-22T08:30:00Z",
       "completedAt": "2025-10-30T17:00:00Z"
     },
     {
       "id": "task-011",
-      "title": "Grocery run — weekly staples",
+      "title": "Grocery run \u2014 weekly staples",
       "description": "Standard weekly grocery shop: produce, dairy, bread, and pantry restocking. Check the family meal plan before going.",
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["errands"],
+      "tags": [
+        "errands"
+      ],
       "dueDate": "2025-11-03",
       "createdAt": "2025-11-01T07:00:00Z",
       "completedAt": "2025-11-03T11:30:00Z"
@@ -136,11 +163,14 @@
     {
       "id": "task-012",
       "title": "Mia's dentist appointment",
-      "description": "Mia's six-month checkup at Dr. Patel's office. Appointment is at 3:30 PM — need to pick her up from school early.",
+      "description": "Mia's six-month checkup at Dr. Patel's office. Appointment is at 3:30 PM \u2014 need to pick her up from school early.",
       "status": "completed",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["health", "kids"],
+      "tags": [
+        "health",
+        "kids"
+      ],
       "dueDate": "2025-11-05",
       "createdAt": "2025-10-28T10:00:00Z",
       "completedAt": "2025-11-05T16:00:00Z"
@@ -152,7 +182,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": null,
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2025-11-10",
       "createdAt": "2025-11-02T12:00:00Z",
       "completedAt": "2025-11-09T19:00:00Z"
@@ -164,7 +196,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["finance", "health"],
+      "tags": [
+        "finance",
+        "health"
+      ],
       "dueDate": "2025-11-12",
       "createdAt": "2025-11-05T08:00:00Z",
       "completedAt": "2025-11-12T10:00:00Z"
@@ -176,7 +211,10 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["health", "kids"],
+      "tags": [
+        "health",
+        "kids"
+      ],
       "dueDate": "2025-11-14",
       "createdAt": "2025-11-04T09:00:00Z",
       "completedAt": "2025-11-13T14:30:00Z"
@@ -188,7 +226,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2025-11-16",
       "createdAt": "2025-11-07T10:00:00Z",
       "completedAt": "2025-11-15T15:30:00Z"
@@ -200,7 +240,9 @@
       "status": "completed",
       "priority": "urgent",
       "assignee": "Sam",
-      "tags": ["finance"],
+      "tags": [
+        "finance"
+      ],
       "dueDate": "2025-11-20",
       "createdAt": "2025-11-08T09:00:00Z",
       "completedAt": "2025-11-19T17:00:00Z"
@@ -212,7 +254,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["kids", "errands"],
+      "tags": [
+        "kids",
+        "errands"
+      ],
       "dueDate": "2025-11-21",
       "createdAt": "2025-11-10T11:00:00Z",
       "completedAt": "2025-11-20T16:00:00Z"
@@ -224,7 +269,10 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["errands", "family"],
+      "tags": [
+        "errands",
+        "family"
+      ],
       "dueDate": "2025-11-25",
       "createdAt": "2025-11-17T08:00:00Z",
       "completedAt": "2025-11-24T12:00:00Z"
@@ -236,7 +284,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["garden", "home"],
+      "tags": [
+        "garden",
+        "home"
+      ],
       "dueDate": "2025-11-28",
       "createdAt": "2025-11-15T09:00:00Z",
       "completedAt": "2025-11-27T14:30:00Z"
@@ -248,7 +299,9 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2025-12-05",
       "createdAt": "2025-11-22T10:00:00Z",
       "completedAt": "2025-12-03T20:00:00Z"
@@ -260,7 +313,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["car"],
+      "tags": [
+        "car"
+      ],
       "dueDate": "2025-12-06",
       "createdAt": "2025-11-28T08:00:00Z",
       "completedAt": "2025-12-05T11:00:00Z"
@@ -272,7 +327,10 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["kids", "school"],
+      "tags": [
+        "kids",
+        "school"
+      ],
       "dueDate": "2025-12-09",
       "createdAt": "2025-12-01T09:00:00Z",
       "completedAt": "2025-12-09T20:00:00Z"
@@ -284,7 +342,10 @@
       "status": "completed",
       "priority": "low",
       "assignee": null,
-      "tags": ["family", "home"],
+      "tags": [
+        "family",
+        "home"
+      ],
       "dueDate": "2025-12-07",
       "createdAt": "2025-11-30T10:00:00Z",
       "completedAt": "2025-12-07T17:00:00Z"
@@ -296,7 +357,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["health"],
+      "tags": [
+        "health"
+      ],
       "dueDate": "2025-12-12",
       "createdAt": "2025-12-01T09:30:00Z",
       "completedAt": "2025-12-11T14:00:00Z"
@@ -308,7 +371,9 @@
       "status": "completed",
       "priority": "urgent",
       "assignee": "Sam",
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2025-12-18",
       "createdAt": "2025-12-10T10:00:00Z",
       "completedAt": "2025-12-17T15:00:00Z"
@@ -320,7 +385,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2025-12-20",
       "createdAt": "2025-12-14T08:00:00Z",
       "completedAt": "2025-12-20T11:30:00Z"
@@ -332,7 +399,11 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["kids", "school", "family"],
+      "tags": [
+        "kids",
+        "school",
+        "family"
+      ],
       "dueDate": "2025-12-16",
       "createdAt": "2025-12-05T10:00:00Z",
       "completedAt": "2025-12-16T21:00:00Z"
@@ -344,7 +415,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["finance"],
+      "tags": [
+        "finance"
+      ],
       "dueDate": "2025-12-28",
       "createdAt": "2025-12-18T09:00:00Z",
       "completedAt": "2025-12-27T20:00:00Z"
@@ -356,7 +429,10 @@
       "status": "completed",
       "priority": "low",
       "assignee": null,
-      "tags": ["errands", "family"],
+      "tags": [
+        "errands",
+        "family"
+      ],
       "dueDate": "2025-12-30",
       "createdAt": "2025-12-20T10:00:00Z",
       "completedAt": "2025-12-29T14:00:00Z"
@@ -368,7 +444,9 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["car"],
+      "tags": [
+        "car"
+      ],
       "dueDate": "2026-01-04",
       "createdAt": "2025-12-28T09:00:00Z",
       "completedAt": "2026-01-03T15:00:00Z"
@@ -380,7 +458,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["finance", "kids"],
+      "tags": [
+        "finance",
+        "kids"
+      ],
       "dueDate": "2026-01-10",
       "createdAt": "2026-01-02T10:00:00Z",
       "completedAt": "2026-01-09T16:30:00Z"
@@ -392,7 +473,10 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["health", "kids"],
+      "tags": [
+        "health",
+        "kids"
+      ],
       "dueDate": "2026-01-15",
       "createdAt": "2026-01-05T09:00:00Z",
       "completedAt": "2026-01-14T14:00:00Z"
@@ -404,7 +488,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-01-18",
       "createdAt": "2026-01-10T10:00:00Z",
       "completedAt": "2026-01-18T16:00:00Z"
@@ -412,11 +498,13 @@
     {
       "id": "task-035",
       "title": "File Q4 tax documents",
-      "description": "Gather all year-end tax documents — W2s, investment summaries, charitable donation receipts — and file with the accountant.",
+      "description": "Gather all year-end tax documents \u2014 W2s, investment summaries, charitable donation receipts \u2014 and file with the accountant.",
       "status": "completed",
       "priority": "urgent",
       "assignee": "Alex",
-      "tags": ["finance"],
+      "tags": [
+        "finance"
+      ],
       "dueDate": "2026-01-20",
       "createdAt": "2026-01-08T09:00:00Z",
       "completedAt": "2026-01-19T17:00:00Z"
@@ -428,7 +516,10 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["home", "errands"],
+      "tags": [
+        "home",
+        "errands"
+      ],
       "dueDate": "2026-01-22",
       "createdAt": "2026-01-14T10:00:00Z",
       "completedAt": "2026-01-21T14:30:00Z"
@@ -440,7 +531,10 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["kids", "school"],
+      "tags": [
+        "kids",
+        "school"
+      ],
       "dueDate": "2026-01-25",
       "createdAt": "2026-01-15T09:00:00Z",
       "completedAt": "2026-01-25T19:30:00Z"
@@ -452,7 +546,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-01-28",
       "createdAt": "2026-01-18T08:00:00Z",
       "completedAt": "2026-01-28T12:00:00Z"
@@ -464,7 +560,10 @@
       "status": "completed",
       "priority": "urgent",
       "assignee": "Sam",
-      "tags": ["car", "errands"],
+      "tags": [
+        "car",
+        "errands"
+      ],
       "dueDate": "2026-01-30",
       "createdAt": "2026-01-20T09:00:00Z",
       "completedAt": "2026-01-29T11:00:00Z"
@@ -476,7 +575,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["health", "errands"],
+      "tags": [
+        "health",
+        "errands"
+      ],
       "dueDate": "2026-02-02",
       "createdAt": "2026-01-25T10:00:00Z",
       "completedAt": "2026-02-01T15:00:00Z"
@@ -488,7 +590,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2026-02-13",
       "createdAt": "2026-02-05T09:00:00Z",
       "completedAt": "2026-02-12T18:00:00Z"
@@ -500,7 +604,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-02-08",
       "createdAt": "2026-01-30T10:00:00Z",
       "completedAt": "2026-02-07T16:00:00Z"
@@ -512,7 +618,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Mia",
-      "tags": ["kids", "school"],
+      "tags": [
+        "kids",
+        "school"
+      ],
       "dueDate": "2026-02-13",
       "createdAt": "2026-02-04T09:00:00Z",
       "completedAt": "2026-02-12T20:00:00Z"
@@ -524,7 +633,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home", "garden"],
+      "tags": [
+        "home",
+        "garden"
+      ],
       "dueDate": "2026-02-16",
       "createdAt": "2026-02-08T09:00:00Z",
       "completedAt": "2026-02-15T14:00:00Z"
@@ -536,7 +648,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["finance"],
+      "tags": [
+        "finance"
+      ],
       "dueDate": "2026-02-18",
       "createdAt": "2026-02-12T10:00:00Z",
       "completedAt": "2026-02-18T09:30:00Z"
@@ -548,7 +662,10 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["kids", "school"],
+      "tags": [
+        "kids",
+        "school"
+      ],
       "dueDate": "2026-02-27",
       "createdAt": "2026-02-15T09:00:00Z",
       "completedAt": "2026-02-26T19:00:00Z"
@@ -556,11 +673,13 @@
     {
       "id": "task-047",
       "title": "Book anniversary dinner reservation",
-      "description": "Alex and Sam's anniversary is March 5th. Book a table at their favorite Italian restaurant — call ahead, they fill up fast.",
+      "description": "Alex and Sam's anniversary is March 5th. Book a table at their favorite Italian restaurant \u2014 call ahead, they fill up fast.",
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2026-02-22",
       "createdAt": "2026-02-14T10:00:00Z",
       "completedAt": "2026-02-21T11:00:00Z"
@@ -572,7 +691,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-02-25",
       "createdAt": "2026-02-14T09:00:00Z",
       "completedAt": "2026-02-24T15:30:00Z"
@@ -584,7 +705,9 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["health"],
+      "tags": [
+        "health"
+      ],
       "dueDate": "2026-03-02",
       "createdAt": "2026-02-18T09:00:00Z",
       "completedAt": "2026-03-02T14:00:00Z"
@@ -596,7 +719,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["garden"],
+      "tags": [
+        "garden"
+      ],
       "dueDate": "2026-03-05",
       "createdAt": "2026-02-22T10:00:00Z",
       "completedAt": "2026-03-04T16:00:00Z"
@@ -608,7 +733,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": null,
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-03-08",
       "createdAt": "2026-02-28T10:00:00Z",
       "completedAt": "2026-03-07T15:00:00Z"
@@ -620,7 +747,9 @@
       "status": "completed",
       "priority": "urgent",
       "assignee": "Alex",
-      "tags": ["finance"],
+      "tags": [
+        "finance"
+      ],
       "dueDate": "2026-03-14",
       "createdAt": "2026-03-03T09:00:00Z",
       "completedAt": "2026-03-13T11:30:00Z"
@@ -632,7 +761,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-03-10",
       "createdAt": "2026-03-02T10:00:00Z",
       "completedAt": "2026-03-10T13:00:00Z"
@@ -644,7 +775,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["kids"],
+      "tags": [
+        "kids"
+      ],
       "dueDate": "2026-03-06",
       "createdAt": "2026-02-27T09:00:00Z",
       "completedAt": "2026-03-05T10:30:00Z"
@@ -656,7 +789,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-03-14",
       "createdAt": "2026-03-06T09:00:00Z",
       "completedAt": "2026-03-13T17:00:00Z"
@@ -668,7 +803,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["car"],
+      "tags": [
+        "car"
+      ],
       "dueDate": "2026-03-17",
       "createdAt": "2026-03-07T09:00:00Z",
       "completedAt": "2026-03-17T11:00:00Z"
@@ -680,7 +817,10 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["kids", "errands"],
+      "tags": [
+        "kids",
+        "errands"
+      ],
       "dueDate": "2026-03-18",
       "createdAt": "2026-03-13T10:00:00Z",
       "completedAt": "2026-03-17T18:00:00Z"
@@ -692,7 +832,9 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-03-20",
       "createdAt": "2026-03-10T09:00:00Z",
       "completedAt": "2026-03-19T14:00:00Z"
@@ -704,7 +846,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Alex",
-      "tags": ["garden"],
+      "tags": [
+        "garden"
+      ],
       "dueDate": "2026-03-22",
       "createdAt": "2026-03-12T10:00:00Z",
       "completedAt": "2026-03-22T16:00:00Z"
@@ -712,11 +856,14 @@
     {
       "id": "task-060",
       "title": "Leo's birthday cake order",
-      "description": "Order Leo's birthday cake from the bakery — he wants a dinosaur theme with green frosting. Order must be placed 5 days in advance.",
+      "description": "Order Leo's birthday cake from the bakery \u2014 he wants a dinosaur theme with green frosting. Order must be placed 5 days in advance.",
       "status": "completed",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["kids", "family"],
+      "tags": [
+        "kids",
+        "family"
+      ],
       "dueDate": "2026-03-21",
       "createdAt": "2026-03-14T09:00:00Z",
       "completedAt": "2026-03-20T11:30:00Z"
@@ -728,7 +875,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": null,
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2026-03-24",
       "createdAt": "2026-03-16T09:00:00Z",
       "completedAt": "2026-03-23T21:00:00Z"
@@ -740,7 +889,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Mia",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-03-27",
       "createdAt": "2026-03-18T10:00:00Z",
       "completedAt": "2026-03-26T15:00:00Z"
@@ -752,7 +903,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["health", "kids"],
+      "tags": [
+        "health",
+        "kids"
+      ],
       "dueDate": "2026-03-28",
       "createdAt": "2026-03-20T09:00:00Z",
       "completedAt": "2026-03-27T13:30:00Z"
@@ -764,7 +918,9 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-03-29",
       "createdAt": "2026-03-19T10:00:00Z",
       "completedAt": "2026-03-28T16:00:00Z"
@@ -776,7 +932,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-03-30",
       "createdAt": "2026-03-22T09:00:00Z",
       "completedAt": "2026-03-30T10:00:00Z"
@@ -788,7 +946,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2026-03-28",
       "createdAt": "2026-03-22T10:00:00Z",
       "completedAt": "2026-03-27T19:00:00Z"
@@ -800,7 +960,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-04-01",
       "createdAt": "2026-03-22T09:00:00Z",
       "completedAt": "2026-04-01T11:00:00Z"
@@ -812,7 +974,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["kids"],
+      "tags": [
+        "kids"
+      ],
       "dueDate": "2026-04-01",
       "createdAt": "2026-03-24T10:00:00Z",
       "completedAt": "2026-04-01T17:00:00Z"
@@ -824,7 +988,10 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Alex",
-      "tags": ["garden", "errands"],
+      "tags": [
+        "garden",
+        "errands"
+      ],
       "dueDate": "2026-04-02",
       "createdAt": "2026-03-26T09:00:00Z",
       "completedAt": "2026-04-02T13:00:00Z"
@@ -836,7 +1003,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home", "finance"],
+      "tags": [
+        "home",
+        "finance"
+      ],
       "dueDate": "2026-04-03",
       "createdAt": "2026-03-27T10:00:00Z",
       "completedAt": "2026-04-03T18:00:00Z"
@@ -848,7 +1018,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["finance"],
+      "tags": [
+        "finance"
+      ],
       "dueDate": "2026-04-03",
       "createdAt": "2026-03-28T09:00:00Z",
       "completedAt": "2026-04-02T11:00:00Z"
@@ -860,7 +1032,9 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["health"],
+      "tags": [
+        "health"
+      ],
       "dueDate": "2026-04-04",
       "createdAt": "2026-03-28T10:00:00Z",
       "completedAt": "2026-04-04T09:30:00Z"
@@ -872,7 +1046,10 @@
       "status": "in_progress",
       "priority": "high",
       "assignee": "Mia",
-      "tags": ["school", "kids"],
+      "tags": [
+        "school",
+        "kids"
+      ],
       "dueDate": "2026-04-04",
       "createdAt": "2026-03-30T09:00:00Z",
       "completedAt": null
@@ -884,7 +1061,10 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["home", "errands"],
+      "tags": [
+        "home",
+        "errands"
+      ],
       "dueDate": "2025-10-18",
       "createdAt": "2025-10-12T09:00:00Z",
       "completedAt": "2025-10-17T14:00:00Z"
@@ -896,7 +1076,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["finance"],
+      "tags": [
+        "finance"
+      ],
       "dueDate": "2025-10-20",
       "createdAt": "2025-10-13T10:00:00Z",
       "completedAt": "2025-10-19T11:30:00Z"
@@ -908,7 +1090,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2025-11-08",
       "createdAt": "2025-11-01T09:00:00Z",
       "completedAt": "2025-11-07T16:00:00Z"
@@ -920,7 +1104,9 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2025-11-11",
       "createdAt": "2025-11-05T09:00:00Z",
       "completedAt": "2025-11-11T14:00:00Z"
@@ -932,7 +1118,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["health", "car"],
+      "tags": [
+        "health",
+        "car"
+      ],
       "dueDate": "2025-11-18",
       "createdAt": "2025-11-10T10:00:00Z",
       "completedAt": "2025-11-18T15:30:00Z"
@@ -944,7 +1133,10 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["health", "kids"],
+      "tags": [
+        "health",
+        "kids"
+      ],
       "dueDate": "2025-12-01",
       "createdAt": "2025-11-22T10:00:00Z",
       "completedAt": "2025-11-30T14:30:00Z"
@@ -956,7 +1148,10 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Alex",
-      "tags": ["garden", "home"],
+      "tags": [
+        "garden",
+        "home"
+      ],
       "dueDate": "2025-11-24",
       "createdAt": "2025-11-15T09:00:00Z",
       "completedAt": "2025-11-23T13:00:00Z"
@@ -968,7 +1163,9 @@
       "status": "completed",
       "priority": "urgent",
       "assignee": "Alex",
-      "tags": ["finance"],
+      "tags": [
+        "finance"
+      ],
       "dueDate": "2025-11-30",
       "createdAt": "2025-11-20T10:00:00Z",
       "completedAt": "2025-11-29T11:00:00Z"
@@ -980,7 +1177,10 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["health", "kids"],
+      "tags": [
+        "health",
+        "kids"
+      ],
       "dueDate": "2025-12-10",
       "createdAt": "2025-12-01T09:00:00Z",
       "completedAt": "2025-12-09T15:30:00Z"
@@ -992,7 +1192,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": null,
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2025-12-14",
       "createdAt": "2025-12-05T09:00:00Z",
       "completedAt": "2025-12-13T17:00:00Z"
@@ -1004,7 +1206,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["car", "finance"],
+      "tags": [
+        "car",
+        "finance"
+      ],
       "dueDate": "2025-12-22",
       "createdAt": "2025-12-12T09:00:00Z",
       "completedAt": "2025-12-21T14:00:00Z"
@@ -1016,7 +1221,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-01-06",
       "createdAt": "2025-12-30T10:00:00Z",
       "completedAt": "2026-01-05T16:00:00Z"
@@ -1028,7 +1235,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["kids"],
+      "tags": [
+        "kids"
+      ],
       "dueDate": "2026-01-17",
       "createdAt": "2026-01-09T09:00:00Z",
       "completedAt": "2026-01-16T19:00:00Z"
@@ -1040,7 +1249,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-01-24",
       "createdAt": "2026-01-14T10:00:00Z",
       "completedAt": "2026-01-23T15:30:00Z"
@@ -1052,7 +1263,10 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["health", "kids"],
+      "tags": [
+        "health",
+        "kids"
+      ],
       "dueDate": "2026-02-05",
       "createdAt": "2026-01-27T10:00:00Z",
       "completedAt": "2026-02-04T14:00:00Z"
@@ -1064,7 +1278,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-02-12",
       "createdAt": "2026-02-01T10:00:00Z",
       "completedAt": "2026-02-11T17:00:00Z"
@@ -1076,7 +1292,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": null,
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-02-20",
       "createdAt": "2026-02-12T10:00:00Z",
       "completedAt": "2026-02-19T14:30:00Z"
@@ -1088,7 +1306,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-02-28",
       "createdAt": "2026-02-18T09:00:00Z",
       "completedAt": "2026-02-27T15:00:00Z"
@@ -1100,7 +1320,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["garden"],
+      "tags": [
+        "garden"
+      ],
       "dueDate": "2026-03-08",
       "createdAt": "2026-02-28T10:00:00Z",
       "completedAt": "2026-03-07T13:30:00Z"
@@ -1112,7 +1334,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-03-13",
       "createdAt": "2026-03-04T10:00:00Z",
       "completedAt": "2026-03-12T19:00:00Z"
@@ -1124,7 +1348,10 @@
       "status": "todo",
       "priority": "low",
       "assignee": "Mia",
-      "tags": ["kids", "school"],
+      "tags": [
+        "kids",
+        "school"
+      ],
       "dueDate": "2026-03-16",
       "createdAt": "2026-03-10T09:00:00Z",
       "completedAt": null
@@ -1136,7 +1363,11 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["school", "kids", "family"],
+      "tags": [
+        "school",
+        "kids",
+        "family"
+      ],
       "dueDate": "2026-03-19",
       "createdAt": "2026-03-11T09:00:00Z",
       "completedAt": "2026-03-18T17:00:00Z"
@@ -1148,7 +1379,9 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["garden"],
+      "tags": [
+        "garden"
+      ],
       "dueDate": "2026-03-26",
       "createdAt": "2026-03-17T09:00:00Z",
       "completedAt": "2026-03-25T13:00:00Z"
@@ -1160,7 +1393,10 @@
       "status": "completed",
       "priority": "low",
       "assignee": null,
-      "tags": ["family", "kids"],
+      "tags": [
+        "family",
+        "kids"
+      ],
       "dueDate": "2026-01-31",
       "createdAt": "2026-01-20T10:00:00Z",
       "completedAt": "2026-01-30T19:00:00Z"
@@ -1172,7 +1408,10 @@
       "status": "completed",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["school", "finance"],
+      "tags": [
+        "school",
+        "finance"
+      ],
       "dueDate": "2026-03-31",
       "createdAt": "2026-03-22T10:00:00Z",
       "completedAt": "2026-03-30T11:00:00Z"
@@ -1184,7 +1423,9 @@
       "status": "completed",
       "priority": "low",
       "assignee": "Alex",
-      "tags": ["car"],
+      "tags": [
+        "car"
+      ],
       "dueDate": "2026-04-04",
       "createdAt": "2026-03-30T09:00:00Z",
       "completedAt": "2026-04-04T14:00:00Z"
@@ -1196,7 +1437,9 @@
       "status": "completed",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["health"],
+      "tags": [
+        "health"
+      ],
       "dueDate": "2026-04-04",
       "createdAt": "2026-03-25T10:00:00Z",
       "completedAt": "2026-04-04T11:00:00Z"
@@ -1208,7 +1451,9 @@
       "status": "todo",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["errands"],
+      "tags": [
+        "errands"
+      ],
       "dueDate": "2026-04-03",
       "createdAt": "2026-04-02T07:30:00Z",
       "completedAt": null
@@ -1220,7 +1465,10 @@
       "status": "todo",
       "priority": "high",
       "assignee": "Sam",
-      "tags": ["health", "kids"],
+      "tags": [
+        "health",
+        "kids"
+      ],
       "dueDate": "2026-04-04",
       "createdAt": "2026-04-01T09:00:00Z",
       "completedAt": null
@@ -1232,7 +1480,9 @@
       "status": "in_progress",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-04-08",
       "createdAt": "2026-03-31T10:00:00Z",
       "completedAt": null
@@ -1244,7 +1494,10 @@
       "status": "in_progress",
       "priority": "urgent",
       "assignee": "Sam",
-      "tags": ["family", "kids"],
+      "tags": [
+        "family",
+        "kids"
+      ],
       "dueDate": "2026-04-10",
       "createdAt": "2026-03-28T09:00:00Z",
       "completedAt": null
@@ -1256,7 +1509,9 @@
       "status": "todo",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["errands"],
+      "tags": [
+        "errands"
+      ],
       "dueDate": "2026-04-02",
       "createdAt": "2026-03-30T09:00:00Z",
       "completedAt": null
@@ -1268,7 +1523,10 @@
       "status": "in_progress",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["school", "kids"],
+      "tags": [
+        "school",
+        "kids"
+      ],
       "dueDate": "2026-04-12",
       "createdAt": "2026-03-30T10:00:00Z",
       "completedAt": null
@@ -1280,7 +1538,9 @@
       "status": "todo",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-04-15",
       "createdAt": "2026-04-03T09:00:00Z",
       "completedAt": null
@@ -1288,11 +1548,13 @@
     {
       "id": "task-108",
       "title": "Mow the lawn",
-      "description": "The grass has grown quickly with the spring rain and is getting long. First mow of the season — check mower has gas.",
+      "description": "The grass has grown quickly with the spring rain and is getting long. First mow of the season \u2014 check mower has gas.",
       "status": "todo",
       "priority": "low",
       "assignee": "Leo",
-      "tags": ["garden"],
+      "tags": [
+        "garden"
+      ],
       "dueDate": "2026-04-13",
       "createdAt": "2026-04-03T08:00:00Z",
       "completedAt": null
@@ -1304,7 +1566,9 @@
       "status": "todo",
       "priority": "medium",
       "assignee": "Mia",
-      "tags": ["errands"],
+      "tags": [
+        "errands"
+      ],
       "dueDate": "2026-04-09",
       "createdAt": "2026-04-02T10:00:00Z",
       "completedAt": null
@@ -1316,7 +1580,9 @@
       "status": "todo",
       "priority": "urgent",
       "assignee": "Alex",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-04-07",
       "createdAt": "2026-04-04T08:00:00Z",
       "completedAt": null
@@ -1328,7 +1594,9 @@
       "status": "todo",
       "priority": "medium",
       "assignee": null,
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2026-05-20",
       "createdAt": "2026-04-07T10:00:00Z",
       "completedAt": null
@@ -1340,7 +1608,9 @@
       "status": "todo",
       "priority": "low",
       "assignee": "Sam",
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-06-04",
       "createdAt": "2026-04-08T10:00:00Z",
       "completedAt": null
@@ -1352,7 +1622,9 @@
       "status": "todo",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["car"],
+      "tags": [
+        "car"
+      ],
       "dueDate": "2026-05-25",
       "createdAt": "2026-04-08T09:00:00Z",
       "completedAt": null
@@ -1364,7 +1636,9 @@
       "status": "todo",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["kids"],
+      "tags": [
+        "kids"
+      ],
       "dueDate": "2026-05-10",
       "createdAt": "2026-04-06T10:00:00Z",
       "completedAt": null
@@ -1376,7 +1650,9 @@
       "status": "todo",
       "priority": "low",
       "assignee": null,
-      "tags": ["garden"],
+      "tags": [
+        "garden"
+      ],
       "dueDate": "2026-06-19",
       "createdAt": "2026-04-09T09:00:00Z",
       "completedAt": null
@@ -1388,7 +1664,9 @@
       "status": "todo",
       "priority": "low",
       "assignee": null,
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2026-07-04",
       "createdAt": "2026-04-09T10:00:00Z",
       "completedAt": null
@@ -1400,7 +1678,10 @@
       "status": "todo",
       "priority": "medium",
       "assignee": "Sam",
-      "tags": ["school", "kids"],
+      "tags": [
+        "school",
+        "kids"
+      ],
       "dueDate": "2026-05-30",
       "createdAt": "2026-04-09T09:00:00Z",
       "completedAt": null
@@ -1412,7 +1693,9 @@
       "status": "todo",
       "priority": "high",
       "assignee": "Alex",
-      "tags": ["car"],
+      "tags": [
+        "car"
+      ],
       "dueDate": "2026-05-15",
       "createdAt": "2026-04-07T10:00:00Z",
       "completedAt": null
@@ -1424,7 +1707,9 @@
       "status": "todo",
       "priority": "low",
       "assignee": null,
-      "tags": ["home"],
+      "tags": [
+        "home"
+      ],
       "dueDate": "2026-06-14",
       "createdAt": "2026-04-10T09:00:00Z",
       "completedAt": null
@@ -1436,9 +1721,889 @@
       "status": "todo",
       "priority": "medium",
       "assignee": "Alex",
-      "tags": ["family"],
+      "tags": [
+        "family"
+      ],
       "dueDate": "2026-05-05",
       "createdAt": "2026-04-06T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-121",
+      "title": "Fix leaky kitchen faucet",
+      "description": "The kitchen faucet has been dripping for weeks. Replace the cartridge or call a plumber if it needs more work.",
+      "status": "completed",
+      "priority": "high",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2025-07-15",
+      "createdAt": "2025-07-01T08:00:00Z",
+      "completedAt": "2025-07-14T15:30:00Z"
+    },
+    {
+      "id": "task-122",
+      "title": "Mia's birthday party planning",
+      "description": "Plan Mia's 15th birthday. Book the bowling alley, send invitations to 12 friends, order cake from the bakery.",
+      "status": "completed",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "kids",
+        "family"
+      ],
+      "dueDate": "2025-08-02",
+      "createdAt": "2025-07-10T09:00:00Z",
+      "completedAt": "2025-08-01T20:00:00Z"
+    },
+    {
+      "id": "task-123",
+      "title": "Install window air conditioner",
+      "description": "The heatwave is coming. Install the AC unit in the upstairs bedroom and clean filters on the two existing units.",
+      "status": "completed",
+      "priority": "urgent",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2025-07-05",
+      "createdAt": "2025-06-28T07:00:00Z",
+      "completedAt": "2025-07-04T11:00:00Z"
+    },
+    {
+      "id": "task-124",
+      "title": "Leo's summer camp registration",
+      "description": "Register Leo for the two-week nature camp at the community center. Need to submit medical forms and payment by deadline.",
+      "status": "completed",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "kids"
+      ],
+      "dueDate": "2025-06-20",
+      "createdAt": "2025-06-05T10:00:00Z",
+      "completedAt": "2025-06-18T14:00:00Z"
+    },
+    {
+      "id": "task-125",
+      "title": "Repaint the front porch",
+      "description": "The porch railing is chipped and faded. Sand it down, prime, and apply two coats of white exterior paint.",
+      "status": "completed",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "home",
+        "garden"
+      ],
+      "dueDate": "2025-08-20",
+      "createdAt": "2025-08-01T09:00:00Z",
+      "completedAt": "2025-08-18T17:00:00Z"
+    },
+    {
+      "id": "task-126",
+      "title": "Family camping trip packing",
+      "description": "Pack gear for the weekend camping trip: tent, sleeping bags, cooler, flashlights, first-aid kit, and bug spray.",
+      "status": "completed",
+      "priority": "medium",
+      "assignee": null,
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2025-07-25",
+      "createdAt": "2025-07-18T09:00:00Z",
+      "completedAt": "2025-07-24T21:00:00Z"
+    },
+    {
+      "id": "task-127",
+      "title": "Renew car insurance",
+      "description": "Car insurance expires end of August. Compare quotes from three providers and renew or switch before the deadline.",
+      "status": "completed",
+      "priority": "urgent",
+      "assignee": "Alex",
+      "tags": [
+        "car",
+        "finance"
+      ],
+      "dueDate": "2025-08-28",
+      "createdAt": "2025-08-10T08:00:00Z",
+      "completedAt": "2025-08-25T10:00:00Z"
+    },
+    {
+      "id": "task-128",
+      "title": "Back-to-school haircuts",
+      "description": "Book haircut appointments for Mia and Leo before school starts. Mia wants layers, Leo wants it short.",
+      "status": "completed",
+      "priority": "low",
+      "assignee": "Sam",
+      "tags": [
+        "kids"
+      ],
+      "dueDate": "2025-09-01",
+      "createdAt": "2025-08-20T10:00:00Z",
+      "completedAt": "2025-08-30T16:00:00Z"
+    },
+    {
+      "id": "task-129",
+      "title": "Fix broken sprinkler head",
+      "description": "Zone 3 sprinkler head is cracked and spraying sideways. Replace with matching pop-up head from the hardware store.",
+      "status": "completed",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "garden"
+      ],
+      "dueDate": "2025-07-20",
+      "createdAt": "2025-07-12T08:00:00Z",
+      "completedAt": "2025-07-19T11:00:00Z"
+    },
+    {
+      "id": "task-130",
+      "title": "Donate old toys and clothes",
+      "description": "Sort through the kids' outgrown clothes and toys. Box up donations for the charity drop-off on Saturday.",
+      "status": "completed",
+      "priority": "low",
+      "assignee": "Mia",
+      "tags": [
+        "home",
+        "kids"
+      ],
+      "dueDate": "2025-08-10",
+      "createdAt": "2025-07-28T09:00:00Z",
+      "completedAt": "2025-08-09T14:00:00Z"
+    },
+    {
+      "id": "task-131",
+      "title": "Grandma Ruth's anniversary dinner",
+      "description": "Plan a surprise dinner for Grandma Ruth's wedding anniversary. Book the Italian restaurant and coordinate with Uncle Tom.",
+      "status": "completed",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2025-09-15",
+      "createdAt": "2025-08-28T09:00:00Z",
+      "completedAt": "2025-09-14T22:00:00Z"
+    },
+    {
+      "id": "task-132",
+      "title": "Set up Leo's new desk",
+      "description": "Assemble the IKEA desk and bookshelf for Leo's room. Need Allen wrench set and help lifting the top piece.",
+      "status": "completed",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "home",
+        "kids"
+      ],
+      "dueDate": "2025-09-08",
+      "createdAt": "2025-08-30T09:00:00Z",
+      "completedAt": "2025-09-07T16:00:00Z"
+    },
+    {
+      "id": "task-133",
+      "title": "Winterize the garden beds",
+      "description": "Cut back perennials, mulch the flower beds, and cover the rose bushes before the first frost.",
+      "status": "completed",
+      "priority": "medium",
+      "assignee": null,
+      "tags": [
+        "garden"
+      ],
+      "dueDate": "2025-10-01",
+      "createdAt": "2025-09-15T09:00:00Z",
+      "completedAt": "2025-09-29T15:00:00Z"
+    },
+    {
+      "id": "task-134",
+      "title": "Replace the water heater anode rod",
+      "description": "The water heater is 5 years old. Replace the anode rod to prevent corrosion and extend the tank's lifespan.",
+      "status": "completed",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2025-08-15",
+      "createdAt": "2025-08-01T08:00:00Z",
+      "completedAt": "2025-08-14T12:00:00Z"
+    },
+    {
+      "id": "task-135",
+      "title": "Mia's driver's permit study guide",
+      "description": "Help Mia start studying for her learner's permit test. Download the state handbook and set up a practice quiz schedule.",
+      "status": "completed",
+      "priority": "medium",
+      "assignee": "Mia",
+      "tags": [
+        "kids",
+        "school"
+      ],
+      "dueDate": "2025-09-20",
+      "createdAt": "2025-09-01T09:00:00Z",
+      "completedAt": "2025-09-19T18:00:00Z"
+    },
+    {
+      "id": "task-136",
+      "title": "Book summer vacation rental",
+      "description": "Research and book a beach house for the August family vacation. Need 3 bedrooms, pet-friendly, within 4 hours drive.",
+      "status": "completed",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2025-06-30",
+      "createdAt": "2025-06-10T09:00:00Z",
+      "completedAt": "2025-06-28T20:00:00Z"
+    },
+    {
+      "id": "task-137",
+      "title": "Schedule annual furnace inspection",
+      "description": "Book the HVAC company for the fall furnace tune-up. Last year they found a cracked heat exchanger \u2014 follow up on warranty.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2026-09-15",
+      "createdAt": "2026-04-10T08:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-138",
+      "title": "Leo's science fair project",
+      "description": "Help Leo plan and build his science fair entry on plant growth with different light wavelengths. Needs supplies and a display board.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Leo",
+      "tags": [
+        "school",
+        "kids"
+      ],
+      "dueDate": "2026-10-20",
+      "createdAt": "2026-04-08T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-139",
+      "title": "Replace deck boards",
+      "description": "Three deck boards near the grill are warped and splintering. Buy matching pressure-treated lumber and replace them.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "home",
+        "garden"
+      ],
+      "dueDate": "2026-07-20",
+      "createdAt": "2026-04-09T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-140",
+      "title": "Plan Thanksgiving dinner",
+      "description": "Start planning the Thanksgiving menu and guest list. Confirm who's coming, assign dishes, and order the turkey early.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Sam",
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2026-11-10",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-141",
+      "title": "Mia's college visit schedule",
+      "description": "Research and schedule visits to three colleges Mia is interested in. Book hotels and plan driving routes for the fall.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "kids",
+        "school"
+      ],
+      "dueDate": "2026-08-30",
+      "createdAt": "2026-04-08T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-142",
+      "title": "Install smart thermostat",
+      "description": "Replace the old thermostat with a Nest. Need to check wiring compatibility and set up the app for scheduling.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2026-08-01",
+      "createdAt": "2026-04-09T08:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-143",
+      "title": "Family holiday card photos",
+      "description": "Book a photographer for the annual holiday card shoot. Find matching outfits and pick a location with fall foliage.",
+      "status": "todo",
+      "priority": "low",
+      "assignee": "Sam",
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2026-10-15",
+      "createdAt": "2026-04-10T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-144",
+      "title": "Clean and reseal the driveway",
+      "description": "Power wash the driveway and apply sealcoat. Fill any cracks wider than 1/4 inch before sealing.",
+      "status": "todo",
+      "priority": "low",
+      "assignee": null,
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2026-09-01",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-145",
+      "title": "Update family emergency kit",
+      "description": "Check expiration dates on first-aid supplies, replace batteries in flashlights, and add water purification tablets.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": null,
+      "tags": [
+        "home",
+        "health"
+      ],
+      "dueDate": "2026-08-15",
+      "createdAt": "2026-04-09T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-146",
+      "title": "Plant a vegetable garden",
+      "description": "Build raised beds in the backyard and plant tomatoes, zucchini, peppers, and herbs. Leo wants to grow pumpkins too.",
+      "status": "in_progress",
+      "priority": "medium",
+      "assignee": "Leo",
+      "tags": [
+        "garden",
+        "kids"
+      ],
+      "dueDate": "2026-05-01",
+      "createdAt": "2026-04-05T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-147",
+      "title": "Schedule pet vaccinations",
+      "description": "Both the dog and cat are due for annual shots. Book vet appointments and check if flea prevention needs refilling.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Mia",
+      "tags": [
+        "health",
+        "errands"
+      ],
+      "dueDate": "2026-05-20",
+      "createdAt": "2026-04-07T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-148",
+      "title": "Organize the garage workshop",
+      "description": "Sort tools into labeled drawers, mount pegboard for hanging tools, and clear space for the workbench.",
+      "status": "todo",
+      "priority": "low",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2026-07-10",
+      "createdAt": "2026-04-10T08:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-149",
+      "title": "Enroll Leo in piano lessons",
+      "description": "Leo has been asking about learning piano. Find a local teacher, compare rates, and sign up for weekly lessons.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Sam",
+      "tags": [
+        "kids"
+      ],
+      "dueDate": "2026-09-10",
+      "createdAt": "2026-04-08T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-150",
+      "title": "Christmas gift brainstorm",
+      "description": "Start a shared list of gift ideas for each family member. Set a budget and decide on Secret Santa rules.",
+      "status": "todo",
+      "priority": "low",
+      "assignee": null,
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2026-11-20",
+      "createdAt": "2026-04-10T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-151",
+      "title": "Renew home insurance policy",
+      "description": "Home insurance is up for renewal in January. Get competing quotes and review coverage for flood and earthquake.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Alex",
+      "tags": [
+        "finance",
+        "home"
+      ],
+      "dueDate": "2027-01-10",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-152",
+      "title": "Book ski trip for winter break",
+      "description": "Find a family-friendly ski resort for the February break. Need ski rentals for Leo and beginner lessons for Sam.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Sam",
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2026-12-15",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-153",
+      "title": "Mia's SAT prep course enrollment",
+      "description": "Sign Mia up for an SAT prep course starting in spring. Compare online vs in-person options and check scheduling.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "school",
+        "kids"
+      ],
+      "dueDate": "2027-02-01",
+      "createdAt": "2026-04-10T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-154",
+      "title": "Replace roof shingles",
+      "description": "Roofer noted missing shingles during last inspection. Get three bids and schedule repair before spring rains.",
+      "status": "todo",
+      "priority": "urgent",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2027-03-15",
+      "createdAt": "2026-04-10T08:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-155",
+      "title": "Plan Alex's 40th birthday",
+      "description": "Surprise party for Alex. Book a venue, create a guest list of 30 people, and arrange catering and decorations.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2027-03-01",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-156",
+      "title": "Install backyard fire pit",
+      "description": "Build a stone fire pit in the backyard with a gravel surround. Need to check local fire codes and HOA rules first.",
+      "status": "todo",
+      "priority": "low",
+      "assignee": "Alex",
+      "tags": [
+        "garden",
+        "home"
+      ],
+      "dueDate": "2027-05-15",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-157",
+      "title": "Leo's braces consultation",
+      "description": "Schedule orthodontist appointments for Leo. Get quotes from two offices and verify insurance coverage.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "health",
+        "kids"
+      ],
+      "dueDate": "2027-01-20",
+      "createdAt": "2026-04-10T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-158",
+      "title": "Annual tax filing prep",
+      "description": "Gather W-2s, 1099s, mortgage interest statement, and charitable donation receipts. Organize for the accountant.",
+      "status": "todo",
+      "priority": "urgent",
+      "assignee": "Alex",
+      "tags": [
+        "finance"
+      ],
+      "dueDate": "2027-03-01",
+      "createdAt": "2026-04-10T08:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-159",
+      "title": "Spring garden planning",
+      "description": "Design the spring garden layout. Order seeds for sunflowers, lavender, and wildflower mix. Plan the raised bed rotation.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": null,
+      "tags": [
+        "garden"
+      ],
+      "dueDate": "2027-02-15",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-160",
+      "title": "Upgrade bathroom vanity",
+      "description": "The upstairs bathroom vanity is dated and the countertop is stained. Pick a new vanity with double sinks and quartz top.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2027-04-01",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-161",
+      "title": "Family volunteer day signup",
+      "description": "Sign up the whole family for the community park cleanup day. Need to register online and bring our own gloves.",
+      "status": "todo",
+      "priority": "low",
+      "assignee": null,
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2027-04-20",
+      "createdAt": "2026-04-10T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-162",
+      "title": "Mia's driver's license test",
+      "description": "Schedule Mia's driving test. She needs 10 more practice hours and a refresher on parallel parking.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Mia",
+      "tags": [
+        "kids"
+      ],
+      "dueDate": "2027-01-30",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-163",
+      "title": "Reseal hardwood floors",
+      "description": "The living room and hallway hardwood floors are showing wear. Sand lightly and apply polyurethane. Move furniture first.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2027-06-01",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-164",
+      "title": "Plan summer camp for both kids",
+      "description": "Find camps for Mia (art/photography) and Leo (robotics/coding). Compare week-long vs two-week options.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Sam",
+      "tags": [
+        "kids"
+      ],
+      "dueDate": "2027-03-15",
+      "createdAt": "2026-04-10T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-165",
+      "title": "Install EV charger in garage",
+      "description": "Get an electrician to install a Level 2 EV charger. Need a 240V outlet and check if the panel can handle the load.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "car",
+        "home"
+      ],
+      "dueDate": "2027-05-01",
+      "createdAt": "2026-04-10T08:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-166",
+      "title": "Grandma Ruth's 70th birthday trip",
+      "description": "Plan a family trip to visit Grandma Ruth for her 70th. Book flights for 4, arrange a birthday brunch, and find a gift.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2027-06-10",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-167",
+      "title": "Fence gate replacement",
+      "description": "The side fence gate latch is broken and the frame is rotting. Replace the entire gate and add a self-closing hinge for the dog.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "home",
+        "garden"
+      ],
+      "dueDate": "2027-04-15",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-168",
+      "title": "Kids' annual physicals",
+      "description": "Book annual checkups for Mia and Leo. They'll need updated immunization records for school enrollment.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "health",
+        "kids"
+      ],
+      "dueDate": "2027-07-15",
+      "createdAt": "2026-04-10T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-169",
+      "title": "Pressure wash the house siding",
+      "description": "Green algae is growing on the north side. Rent a pressure washer and clean all four sides plus the patio.",
+      "status": "todo",
+      "priority": "low",
+      "assignee": null,
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2027-05-20",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-170",
+      "title": "Set up college savings account for Leo",
+      "description": "Open a 529 plan for Leo. Compare state plans, set up automatic monthly contributions, and add grandparents as authorized gifters.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Alex",
+      "tags": [
+        "finance",
+        "kids"
+      ],
+      "dueDate": "2027-02-01",
+      "createdAt": "2026-04-10T08:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-171",
+      "title": "Build a treehouse for Leo",
+      "description": "Design and build a small treehouse in the backyard oak. Need plans, lumber, and a free weekend. Leo wants a rope ladder.",
+      "status": "todo",
+      "priority": "low",
+      "assignee": "Alex",
+      "tags": [
+        "garden",
+        "kids"
+      ],
+      "dueDate": "2027-07-01",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-172",
+      "title": "Update estate documents",
+      "description": "Meet with the attorney to update wills, power of attorney, and beneficiary designations. Last updated 5 years ago.",
+      "status": "todo",
+      "priority": "urgent",
+      "assignee": "Alex",
+      "tags": [
+        "finance"
+      ],
+      "dueDate": "2027-01-15",
+      "createdAt": "2026-04-10T08:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-173",
+      "title": "Family movie marathon schedule",
+      "description": "Create a list of 12 family movies for monthly movie nights. Let each family member pick 3 films. Stock up on popcorn.",
+      "status": "todo",
+      "priority": "low",
+      "assignee": "Mia",
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2027-01-05",
+      "createdAt": "2026-04-10T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-174",
+      "title": "Replace kitchen backsplash",
+      "description": "The kitchen backsplash tiles are cracking. Pick a new subway tile pattern and schedule installation over a long weekend.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2027-06-15",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-175",
+      "title": "Create family recipe book",
+      "description": "Collect favorite recipes from both sides of the family into a printed book. Get Grandma Ruth's handwritten recipes scanned.",
+      "status": "todo",
+      "priority": "low",
+      "assignee": "Sam",
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2027-12-01",
+      "createdAt": "2026-04-10T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-176",
+      "title": "Mia's first car shopping",
+      "description": "Research safe, reliable used cars for Mia's first vehicle. Budget is $8K. Check insurance rates for teen drivers.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "car",
+        "kids"
+      ],
+      "dueDate": "2027-03-01",
+      "createdAt": "2026-04-10T08:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-177",
+      "title": "Annual gutter cleaning",
+      "description": "Clean all gutters and downspouts before the fall leaves. Check for sagging sections and resecure brackets.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": null,
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2027-10-01",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-178",
+      "title": "Plan family reunion",
+      "description": "Organize the biennial family reunion. Book the park pavilion, set up a potluck sign-up sheet, and plan activities for all ages.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Sam",
+      "tags": [
+        "family"
+      ],
+      "dueDate": "2027-08-01",
+      "createdAt": "2026-04-10T10:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-179",
+      "title": "Leo's 10th birthday party",
+      "description": "Plan Leo's birthday party at the trampoline park. Invite his class, order a dinosaur cake, and prepare goodie bags.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Sam",
+      "tags": [
+        "kids",
+        "family"
+      ],
+      "dueDate": "2027-09-05",
+      "createdAt": "2026-04-10T09:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-180",
+      "title": "Install outdoor security cameras",
+      "description": "Buy and install 4 weatherproof cameras covering the front door, driveway, backyard, and side gate. Set up phone alerts.",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "Alex",
+      "tags": [
+        "home"
+      ],
+      "dueDate": "2027-02-15",
+      "createdAt": "2026-04-10T08:00:00Z",
+      "completedAt": null
+    },
+    {
+      "id": "task-181",
+      "title": "School history project",
+      "description": "Mia needs to complete a history project on the Civil Rights Movement for her 10th grade class. Includes a written report and a poster presentation.",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "Mia",
+      "tags": [
+        "school",
+        "kids"
+      ],
+      "dueDate": "2026-04-19",
+      "createdAt": "2026-04-01T16:00:00Z",
       "completedAt": null
     }
   ]

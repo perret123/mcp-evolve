@@ -53,9 +53,10 @@ export default {
   maxTrainPerRun: 10,
   maxGoldenPerRun: 10,
 
-  localContextWindow: 100000,
-  localMaxPredict: 8182,
+  localContextWindow: 64000,
+  localMaxPredict: 16384,
 
+  initQuestions: 10,
   questionsPerPersona: 2,
   language: 'English',
 
