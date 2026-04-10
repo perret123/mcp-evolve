@@ -42,7 +42,7 @@ export default {
   // Local model for most roles, Claude for fixing (needs Edit/Read tools).
   answererModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
   graderModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
-  questionModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
+  promptModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
   fixerModel: 'sonnet',
   reviewerModel: 'sonnet',
   escalatorModel: 'ollama:qwen3.5:35b-a3b-coding-nvfp4',
@@ -56,8 +56,8 @@ export default {
   localContextWindow: 64000,
   localMaxPredict: 16384,
 
-  initQuestions: 10,
-  questionsPerPersona: 2,
+  initPrompts: 10,
+  promptsPerPersona: 2,
   language: 'English',
 
   describeState: () => [

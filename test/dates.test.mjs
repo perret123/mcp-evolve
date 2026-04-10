@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildRunDateContext,
-  resolveQuestionDateContext,
+  resolvePromptDateContext,
   formatDateContextForPrompt,
 } from '../lib/dates.mjs';
 
@@ -17,7 +17,7 @@ test('following-week mode resolves next weekday phrases from a shared anchor', (
     nextWeekdayMode: 'following-week',
   });
 
-  const questionDateContext = resolveQuestionDateContext(
+  const questionDateContext = resolvePromptDateContext(
     'Move it to next Friday, but show me this Wednesday first.',
     runDateContext,
   );
@@ -34,7 +34,7 @@ test('nearest-upcoming mode keeps next weekday on the nearest upcoming date', ()
     nextWeekdayMode: 'nearest-upcoming',
   });
 
-  const questionDateContext = resolveQuestionDateContext(
+  const questionDateContext = resolvePromptDateContext(
     'Move it to next Friday and remind me tomorrow.',
     runDateContext,
   );
@@ -52,7 +52,7 @@ test('formatted prompt includes resolved date mappings', () => {
     relativeDateRules: '"next <weekday>" means the following week.',
   });
 
-  const questionDateContext = resolveQuestionDateContext(
+  const questionDateContext = resolvePromptDateContext(
     'Set it for next Friday.',
     runDateContext,
   );

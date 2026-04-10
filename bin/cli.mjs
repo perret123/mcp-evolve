@@ -24,7 +24,7 @@ import { run } from '../lib/run.mjs';
 import { scaffoldInit, fullInit } from '../lib/init.mjs';
 import { printPersonaMap } from '../lib/personas.mjs';
 import { getFullSummary, loadMetrics, getStalePersonas, getSuccessRateTrend } from '../lib/metrics.mjs';
-import { loadGoldenSet, loadQuestionSet, getQuestionsByGroup, checkStreak } from '../lib/eval.mjs';
+import { loadGoldenSet, loadPromptSet, getPromptsByGroup, checkStreak } from '../lib/eval.mjs';
 
 const { values: args, positionals } = parseArgs({
   options: {
@@ -71,15 +71,15 @@ Commands:
 
 Options:
   -p, --persona <id>     Run single persona
-  -l, --limit <n>        Questions per persona (default: from config)
-  --dry-run              Generate questions only, don't answer
+  -l, --limit <n>        Prompts per persona (default: from config)
+  --dry-run              Generate prompts only, don't run
   --skip-fixer           Skip auto-fix step
   --skip-reviewer        Skip review step
   --train                Train personas only
   --eval                 Eval personas only (hold-out, no fixer)
   --escalate             Force escalation
   --no-escalate          Disable auto-escalation
-  --regression           Replay baseline questions
+  --regression           Replay baseline prompts
   --answerer-model <m>   Override answerer model (e.g. sonnet)
   --streak-threshold <n> Consecutive 100% runs before escalation (default: 3)
   -v, --verbose          Verbose output
@@ -105,7 +105,7 @@ if (command === 'init') {
     process.exit(0);
   }
 
-  // Full init: generate question set
+  // Full init: generate prompt set
   const initConfig = await loadConfig('.', configPath);
   const qs = await fullInit(initConfig);
   if (qs) {
@@ -134,20 +134,20 @@ if (command === 'status') {
     const streak = checkStreak(3, config);
     console.log(`Streak: ${streak.streak} consecutive 100%`);
 
-    const qs = loadQuestionSet(config);
-    if (qs) {
-      const train = getQuestionsByGroup(qs, 'train');
-      const golden = getQuestionsByGroup(qs, 'golden');
-      console.log(`\nQuestion set: ${qs.questions.length} total (${train.length} train, ${golden.length} golden)`);
-      for (const q of qs.questions) {
+    const ps = loadPromptSet(config);
+    if (ps) {
+      const train = getPromptsByGroup(ps, 'train');
+      const golden = getPromptsByGroup(ps, 'golden');
+      console.log(`\nPrompt set: ${ps.prompts.length} total (${train.length} train, ${golden.length} golden)`);
+      for (const q of ps.prompts) {
         const badge = q.group === 'golden' ? '[golden]' : `[train ${q.consecutivePasses || 0}/${config.graduationStreak || 10}]`;
-        console.log(`  ${badge} [${q.persona}] ${q.question.slice(0, 70)}`);
+        console.log(`  ${badge} [${q.persona}] ${q.prompt.slice(0, 70)}`);
       }
     } else {
       const gs = loadGoldenSet(config);
-      console.log(`\nGolden set (legacy): ${gs.questions.length} questions`);
-      for (const q of gs.questions) {
-        console.log(`  [${q.persona}] ${q.question.slice(0, 80)}`);
+      console.log(`\nGolden set (legacy): ${gs.prompts.length} prompts`);
+      for (const q of gs.prompts) {
+        console.log(`  [${q.persona}] ${q.prompt.slice(0, 80)}`);
       }
     }
 
@@ -160,7 +160,7 @@ if (command === 'status') {
     const trend = getSuccessRateTrend(config, 5);
     if (trend.length > 0) {
       console.log(`\nRecent runs:`);
-      for (const r of trend) console.log(`  ${r.timestamp.slice(0, 19)} ${r.successRate}% (${r.questions}q)`);
+      for (const r of trend) console.log(`  ${r.timestamp.slice(0, 19)} ${r.successRate}% (${r.prompts}p)`);
     }
   } catch {
     console.log('No metrics yet. Run mcp-evolve first to build data.');
@@ -179,7 +179,7 @@ if (errors.length > 0) {
 
 // Run
 await run(config, {
-  questionLimit: args.limit ? parseInt(args.limit, 10) : config.questionsPerPersona,
+  promptLimit: args.limit ? parseInt(args.limit, 10) : undefined,
   dryRun: args['dry-run'],
   skipFixer: args['skip-fixer'],
   skipReviewer: args['skip-reviewer'],

@@ -25,7 +25,7 @@ export default {
     'validate_new_persona',
   ],
 
-  questionsPerPersona: 2,
+  promptsPerPersona: 2,
   language: 'English',
   dataDir: '.mcp-evolve',
 

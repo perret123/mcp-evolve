@@ -36,7 +36,7 @@ export default {
     'start_extraction', 'restore_cancelled_transaction',
   ],
 
-  questionsPerPersona: 3,
+  promptsPerPersona: 3,
   language: 'English',
 
   debugLogFiles: [

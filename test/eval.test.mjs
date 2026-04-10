@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  scoreQuestion,
+  scorePrompt,
   aggregateScores,
   isPassingScore,
   classifyErrorCategory,
@@ -13,11 +13,11 @@ const CONFIG = {
 };
 
 test('action request with grader-approved no-op still passes', () => {
-  const score = scoreQuestion({
-    question: 'Can you move all my in-progress tasks to high priority?',
+  const score = scorePrompt({
+    prompt: 'Can you move all my in-progress tasks to high priority?',
     toolCalls: [{ tool: 'mcp__task-manager__list_tasks' }],
     errors: [],
-    answer: 'No change needed. Your only in-progress task is already urgent, which is higher than high priority.',
+    response: 'No change needed. Your only in-progress task is already urgent, which is higher than high priority.',
     grading: { actionExpectation: 'valid_noop' },
   }, CONFIG);
 
@@ -29,11 +29,11 @@ test('action request with grader-approved no-op still passes', () => {
 });
 
 test('action request without write or approved no-op fails', () => {
-  const score = scoreQuestion({
-    question: 'Delete the pay electric bill task.',
+  const score = scorePrompt({
+    prompt: 'Delete the pay electric bill task.',
     toolCalls: [{ tool: 'mcp__task-manager__search_tasks' }],
     errors: [],
-    answer: 'I found the task for you.',
+    response: 'I found the task for you.',
     grading: { actionExpectation: 'missing_write' },
   }, CONFIG);
 
@@ -71,7 +71,7 @@ test('aggregateScores uses actionRequirementMet for action completion', () => {
   assert.equal(scores.actionCompletionRate, '50.0');
 });
 
-test('obsolete questions are excluded from aggregate scoring', () => {
+test('obsolete prompts are excluded from aggregate scoring', () => {
   const scored = [
     { score: { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 3, isActionRequest: false, obsolete: false } },
     { score: { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 2, isActionRequest: false, obsolete: false } },
