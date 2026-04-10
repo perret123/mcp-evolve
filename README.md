@@ -2,7 +2,7 @@
 
 Self-improving test harness for MCP servers.
 
-Simulates diverse user personas against your MCP tools, detects failures, fixes tool descriptions automatically, escalates difficulty when everything passes, and grows a golden regression set.
+Simulates diverse user personas against your MCP tools, detects failures, fixes tool descriptions and handlers automatically, escalates difficulty when everything passes, and grows a golden regression set.
 
 **Your MCP server gets better every time you run it.**
 
@@ -12,37 +12,70 @@ Simulates diverse user personas against your MCP tools, detects failures, fixes 
 SEED (prepare test environment)
   │
   v
-DESCRIBE STATE + PREFETCH (what data exists + live IDs)
+GENERATE prompts (persona-driven, state-aware)
   │
   v
-GENERATE (Sonnet) ──> ANSWER (Opus) ──> GRADE (Sonnet) ──> SCORE
-persona questions      uses MCP tools    semantic check      action detection
-state-aware            name-only user    full tool results   stuck detection
-  │                                                              │
-  │                     ┌─── pass <─────────────────────────────┘
-  │                     │                                        │
-  │                     v                                  fail ─v
-  │              baseline saved              FIX (parallel, git worktrees)
-  │                     │                           │
-  │                     │                    MERGE (Claude combines all)
-  │                     │                           │
-  │                     │                    REPLAY ──> FIXED? → golden set
-  │                     │
-  │              REVIEW (Opus)
-  │              cross-question improvements
-  │                     │
-  │              STREAK CHECK
-  │                     │
-  │              3x 100% ──> ESCALATE (reads source, relative dates)
-  │                               │
-  │              6x 100% ──> FEATURE COMPETITION
-  │                            3 persona groups propose features
-  │                            cross-vote (can't rubber-stamp own)
-  │                            winner → golden set + knowledge base
+RUN (LLM + MCP tools, name-only user context)
   │
   v
-RESET (clean environment)
+GRADE (semantic verification + metamorphic probes)
+  │
+  v
+SCORE ──────────────────────────────────────────┐
+  │                                              │
+  ├── server errors ──> FIX (parallel worktrees) │
+  │                       │                      │
+  │                  REVIEWER MERGE              │
+  │                       │                      │
+  │                  REPLAY → FIXED? → golden    │
+  │                                              │
+  ├── model errors (3+) ──> MODEL-ERROR FIXER    │
+  │                    pattern detection          │
+  │                    MCP improvements           │
+  │                                              │
+  ├── obsolete prompts ──> REMOVE from set       │
+  │                    escalation fills gaps      │
+  │                                              │
+  └── STREAK CHECK                               │
+        3x 100% → ESCALATE (harder prompts)      │
+        6x 100% → FEATURE COMPETITION            │
+                   3 groups propose, cross-vote   │
+                   winner gets built              │
 ```
+
+## What makes this different
+
+Most MCP testing tools **evaluate and stop**. mcp-evolve closes the loop:
+
+1. **Personas generate prompts** — diverse cognitive styles produce different edge cases
+2. **Prompts are state-aware** — the generator knows what data exists in your test environment
+3. **LLM responds using your MCP tools** — authentic testing, because LLMs ARE your users
+4. **Responses are graded semantically** — a grader LLM checks correctness, catching silent bugs that "succeed" but return wrong data
+5. **Metamorphic probes** — before/after state checks catch side effects and invariant violations
+6. **Two fixers** — server-error fixer fixes bugs; model-error fixer improves descriptions and creates convenience tools
+7. **Fixes are verified** — replay the failing prompt, confirm it passes
+8. **Fixed prompts become permanent** — promoted to the golden set for regression protection
+9. **Obsolete prompts are removed** — data drifts, prompts that no longer apply are deleted and replaced by escalation
+10. **When everything passes, it gets harder** — escalation generates prompts testing different interaction patterns
+11. **When THAT passes too, personas propose features** — 3 groups propose new capabilities, cross-vote, winner gets built
+12. **Adversarial prompts** — configurable rate of prompts with wrong names, nonexistent IDs, or contradictions
+
+The key insight: **fix the tool, not the model**. Everyone else fine-tunes models to work around bad tools. mcp-evolve makes the tools better so every LLM benefits.
+
+## Proven results
+
+Tested across 7 rounds (~250 runs) on a family task manager with planted bugs and sloppy descriptions:
+
+| What happened | How |
+|---------------|-----|
+| 2/3 planted bugs found blind | No hint comments, no targeted prompts |
+| 7 → 12 MCP tools | Fixer created convenience tools wrapping existing API |
+| One-line → 500-word descriptions | Each addition driven by actual model failure |
+| 70% → 90%+ success rate | Converges within 20-30 runs |
+| Works with local models | Qwen 3.5 35B on Ollama (zero API cost except fixer) |
+| Works without reset | Obsolete prompt removal handles evolving data |
+
+The model-error fixer is the key innovation — it sees patterns in model failures and makes MCP improvements (better descriptions, new convenience tools) that help the LLM succeed. In Round 6, it fired 16 times across 50 runs.
 
 ## Quickstart
 
@@ -53,7 +86,7 @@ npx mcp-evolve init
 
 # Edit evolve.config.mjs — add your personas, MCP config, write tools
 
-# Dry run — see what questions would be generated
+# Dry run — see what prompts would be generated
 npx mcp-evolve --dry-run
 
 # Full run
@@ -63,24 +96,42 @@ npx mcp-evolve
 npx mcp-evolve status
 ```
 
-## What makes this different
+## Architecture
 
-Most MCP testing tools **evaluate and stop**. mcp-evolve closes the loop:
+### Roles
 
-1. **Personas generate questions** — diverse cognitive styles (MBTI-typed) produce different edge cases
-2. **Questions are state-aware** — the generator knows what data exists in your test environment
-3. **LLM answers using your MCP tools** — authentic testing, because LLMs ARE your users
-4. **Answers are graded semantically** — a grader LLM checks if the answer is actually correct, catching silent bugs that "succeed" but return wrong data
-5. **Failures get fixed in parallel** — each error gets its own git worktree, all fix simultaneously, Claude merges the results
-6. **Fixes are verified** — replay the failing question, confirm it passes
-7. **Fixed questions become permanent** — promoted to the golden set for regression protection
-8. **When everything passes, it gets harder** — the escalator reads your source to find untested capabilities
-9. **When THAT passes too, personas propose features** — 3 groups propose new capabilities, cross-vote, and only features the other groups prefer get built
-10. **Blocked questions escalate** — after 3 consecutive failures, questions are blocked and flagged for deeper investigation
-11. **No new questions until existing ones pass** — golden-only mode focuses on fixing before exploring
-12. **Metrics track everything** — per-persona productivity, per-tool coverage, fix success rates, competition results
+| Role | What it does | Model |
+|------|-------------|-------|
+| **Prompt generator** | Creates diverse, persona-driven test prompts | Any (local OK) |
+| **Answerer** | Runs prompts against MCP tools — no system prompt, just tools | Any (local OK) |
+| **Grader** | Semantic verification + probe invariant checks | Any (local OK) |
+| **Fixer** | Fixes specific server errors in MCP code (parallel worktrees) | Claude (needs Edit/Read) |
+| **Model-error fixer** | Analyzes 3+ model errors for MCP improvement patterns | Claude (needs Edit/Read) |
+| **Reviewer** | Merges parallel fixer branches intelligently | Claude (needs Edit/Read) |
+| **Escalator** | Generates harder prompts testing different interaction patterns | Any (local OK) |
+| **Auto-dev** | Feature development for blocked golden prompts (changes API code) | Claude (needs Edit/Read) |
+| **Proposer/Voter** | Feature competition — persona groups propose and cross-vote | Any (local OK) |
 
-The key insight: **fix the tool, not the model**. Everyone else fine-tunes models to work around bad tools. mcp-evolve makes the tools better so every LLM benefits.
+### API/MCP separation
+
+mcp-evolve works best when your MCP server wraps an API:
+
+```
+task-api.mjs (full backend)  ←  server.mjs (MCP wrapper)
+                                    ↑
+                              mcp-evolve fixes this layer
+```
+
+The fixer improves the MCP wrapper (descriptions, schemas, new tools wrapping existing API methods). Auto-dev can modify the API itself for deeper feature work.
+
+### Metamorphic testing
+
+Every prompt gets a probe — a simple read-only check run before AND after:
+
+- **Action probes**: "How many tasks exist?" before creating one → count should increase by 1
+- **Read probes**: "How many tasks exist?" before a read query → count should stay the same
+
+If the invariant is violated, it's a FAIL — even if the response looks correct. This catches silent side effects, missing fields, and state corruption.
 
 ## Configuration
 
@@ -89,9 +140,9 @@ The key insight: **fix the tool, not the model**. Everyone else fine-tunes model
 ```js
 export default {
   // -- MCP Server --
-  mcpConfig: './mcp-evolve.json',        // MCP server connection config
-  mcpToolPrefix: 'mcp__my-server__',     // stripped for clean metric names
-  answererTools: 'mcp__my-server__*',    // tool pattern for the answerer
+  mcpConfig: './mcp-evolve.json',
+  mcpToolPrefix: 'mcp__my-server__',
+  answererTools: 'mcp__my-server__*',
   systemDescription: 'a project management platform',
 
   // -- Source code (for the fixer) --
@@ -99,114 +150,100 @@ export default {
   buildCommand: 'npm run build',
 
   // -- Action detection --
-  writeTools: ['create_*', 'update_*', 'delete_*'],  // write/mutation tools
+  writeTools: ['create_*', 'update_*', 'delete_*'],
 
   // -- Environment hooks (all optional) --
-  seed: async (config) => { ... },            // prepare test environment
-  reset: async (config) => { ... },           // clean up after run
-  describeState: (config) => '...',           // static description of test data
-  prefetch: async (claude, config) => '...',  // fetch live IDs/names
-  healthcheck: async ({ config, runDateContext }) => ({ ok: true }),
-  timeZone: 'Europe/Zurich',                  // optional: run-wide date anchor timezone
-  nextWeekdayMode: 'following-week',          // optional: "next Friday" semantics
-  relativeDateRules: '"next Friday" means the Friday of the following week',
+  seed: async (config) => { ... },
+  reset: async (config) => { ... },
+  describeState: (config) => '...',
+  prefetch: async (claude, config) => '...',
 
   // -- Personas --
   personas: [
     {
       id: 'admin',
-      group: 'train',        // 'train' = fixer can fix, 'eval' = hold-out
+      group: 'train',
       name: 'System Admin',
-      role: 'Admin',
-      mbti: 'INTJ',          // cognitive style — affects question patterns
-      cluster: 'management', // no two in a cluster share the same MBTI
-      description: 'You are Alex, a system admin who...',
-      concerns: ['user management', 'audit logs', ...],
+      mbti: 'INTJ',
+      cluster: 'management',
+      description: 'You are a system admin who...',
+      concerns: ['user management', 'audit logs'],
       questionStyle: 'Direct and technical.',
     },
-    // ...
   ],
+
+  // -- Prompt generation --
+  promptsPerPersona: 2,
+  initPrompts: 10,
+  adversarialRate: 0.1,    // 10% prompts with wrong names/nonexistent IDs
+
+  // -- Models (all default to sonnet) --
+  answererModel: 'ollama:qwen3.5:35b-a3b',  // local = free
+  graderModel: 'ollama:qwen3.5:35b-a3b',
+  promptModel: 'ollama:qwen3.5:35b-a3b',
+  fixerModel: 'sonnet',                      // needs Claude for Edit/Read
+  reviewerModel: 'sonnet',
+
+  // -- Local model tuning --
+  localContextWindow: 64000,
+  localMaxPredict: 16384,
 };
 ```
 
 ### Environment hooks
 
-The hooks let you control the test environment without mcp-evolve knowing anything about your infrastructure:
+| Hook | Purpose |
+|------|---------|
+| `seed(config)` | Prepare environment before run (import snapshot, start services) |
+| `reset(config)` | Clean up after run (optional — system works without reset) |
+| `describeState(config)` | Static description of test data for the prompt generator |
+| `prefetch(claude, config)` | Fetch live entity names/IDs from the running system |
 
-| Hook | Signature | Purpose |
-|------|-----------|---------|
-| `seed(config)` | async | Prepare environment before run (import snapshot, start services) |
-| `reset(config)` | async | Clean up after run (restart emulator, clear data) |
-| `describeState(config)` | sync, returns string | Static description of test data — fed to question generator so it knows what exists |
-| `prefetch(claude, config)` | async, returns string | Fetch live entity names/IDs from the running system |
+`reset` is optional. Without it, data accumulates naturally. Obsolete prompts (referencing deleted/changed entities) are automatically removed and replaced by escalation.
 
-`describeState` is the critical one for realistic testing. It tells the question generator what data exists so it generates answerable questions:
+### Working without reset
 
-```js
-describeState: () => `
-  ACTIVE: 3 users (admin, editor, viewer), 5 projects, 12 tasks
-  COMPLETED: 8 tasks closed this week
-  EMPTY: no notifications, no comments on project "Alpha"
-  DO NOT ASK ABOUT: billing (not implemented yet)
-`,
-```
+mcp-evolve handles evolving data:
 
-### Date anchoring
+- **Read prompts** work forever — "what's overdue?" adapts to whatever state exists
+- **Action prompts** may go obsolete after mutating state — "reassign X from Mia" fails if Mia is no longer the assignee
+- **Obsolete prompts are deleted** from the prompt set automatically
+- **Escalation generates replacements** based on current state
+- **Metamorphic probes are relative** — before/after within a single run, not across runs
 
-Relative dates are a common source of false negatives. mcp-evolve can anchor the whole run to one canonical date context:
+### Model providers
 
-- `timeZone` — timezone used for date interpretation
-- `referenceNow` — optional fixed clock for deterministic tests
-- `nextWeekdayMode` — `"nearest-upcoming"` or `"following-week"`
-- `relativeDateRules` — extra natural-language guidance passed to the answerer and grader
+Models can be prefixed with a provider:
+- `sonnet`, `opus`, `haiku` — Claude via CLI (default)
+- `ollama:<model>` — Ollama (localhost:11434)
+- `lmstudio:<model>` — LM Studio (localhost:1234)
 
-At the start of each run, mcp-evolve computes one shared date context and passes it to question generation, answering, escalation, and grading. For common phrases like `today`, `tomorrow`, `this Wednesday`, and `next Friday`, it also resolves them once into canonical `YYYY-MM-DD` values and gives the same mapping to both the answerer and the grader.
+Local models use the OpenAI-compatible API. For tool-calling roles (answerer, probes), local models connect to MCP servers directly.
 
-For date-only tools, keep date-only values. Do not add fake time-of-day precision unless your MCP schema actually needs timestamps.
+Fixer/reviewer must stay on Claude — they need Claude Code's built-in Edit/Read tools.
 
-### Healthcheck and invalid-run quarantine
-
-Use `healthcheck` when your MCP server needs an explicit readiness check before testing. The hook runs after `seed()` and before question generation. If it throws or returns `{ ok: false, error: ... }`, the run is marked invalid and quarantined from:
-
-- baselines
-- golden-set health updates
-- metrics
-- escalation
-
-mcp-evolve also quarantines runs that lose access to the configured MCP tools mid-run. These are logged as invalid harness failures instead of being treated as regressions in the server under test.
-
-### Smart question gating
-
-- **Any golden questions failing?** Skip new question generation globally — focus on fixing existing failures first
-- **Question blocked (3+ consecutive fails)?** Skip it, flag for manual investigation
-- **Blocked questions exist?** No escalation — fix what's broken before generating harder tests
-- **3x 100% streak?** Escalate — read source code to find untested capabilities
+**Tip:** Set `OLLAMA_NUM_PARALLEL` via `launchctl setenv` (macOS) and restart the Ollama app. With thinking models (Qwen 3.5), use `localMaxPredict: 16384` — thinking tokens share the output budget.
 
 ## CLI
 
 ```
-npx mcp-evolve                       Full run — all personas, fixer, reviewer
+npx mcp-evolve                       Full run
 npx mcp-evolve init                  Scaffold starter config
 npx mcp-evolve status                Show metrics, persona map, golden set
 
 npx mcp-evolve --persona admin       Single persona
-npx mcp-evolve --limit 5             5 questions per persona
-npx mcp-evolve --dry-run             Generate questions only
+npx mcp-evolve --limit 5             5 prompts per persona
+npx mcp-evolve --dry-run             Generate prompts only
 npx mcp-evolve --skip-fixer          Don't auto-fix failures
-npx mcp-evolve --skip-reviewer       Don't run cross-question review
-npx mcp-evolve --skip-auto-dev       Don't auto-investigate blocked questions
+npx mcp-evolve --skip-auto-dev       Don't auto-investigate blocked prompts
 npx mcp-evolve --train               Train personas only (with fixer)
 npx mcp-evolve --eval                Eval personas only (hold-out, no fixer)
 npx mcp-evolve --escalate            Force escalation
-npx mcp-evolve --no-escalate         Disable auto-escalation
-npx mcp-evolve --regression          Replay baseline questions, compare scores
-npx mcp-evolve --answerer-model <m>  Cross-model testing (e.g. sonnet)
-npx mcp-evolve --skip-grading       Skip semantic answer grading
-npx mcp-evolve --fixer-retries 2    Max fix attempts per question (default 1)
+npx mcp-evolve --compete             Force feature competition
+npx mcp-evolve --regression          Replay baseline prompts, compare scores
+npx mcp-evolve --answerer-model <m>  Cross-model testing
 npx mcp-evolve --streak-threshold 5  Require 5x 100% before escalation
-npx mcp-evolve --compete            Force feature competition
-npx mcp-evolve --no-compete         Disable feature competition
-npx mcp-evolve -c <path>             Use custom config file
+npx mcp-evolve -c <path>             Custom config file
 npx mcp-evolve -v                    Verbose output
 ```
 
@@ -214,53 +251,28 @@ npx mcp-evolve -v                    Verbose output
 
 Personas simulate different types of users. Each has:
 
-- **Concerns** — what they care about (drives question topics)
-- **Question style** — how they communicate (direct commands vs analytical queries)
+- **Concerns** — what they care about (drives prompt topics)
+- **Question style** — how they communicate (casual, direct, analytical)
 - **MBTI type** — cognitive style that produces different edge cases
 - **Cluster** — group of related personas (no two in a cluster share the same MBTI)
 
 ### Train vs eval split
 
-- **Train personas**: when their questions fail, the fixer edits tool code. This is where the system learns.
-- **Eval personas**: no fixes applied. Pure measurement of whether improvements generalize to unseen users.
-
-### MBTI diversity
-
-Each persona gets an MBTI type. Rule: **no two personas in the same cluster may share the same MBTI**. This ensures cognitive diversity — an ISTP operator and an ENFJ coordinator ask fundamentally different questions about the same tools.
-
-```
-Analysts:  INTJ INTP ENTJ ENTP  — logic, patterns, edge cases
-Diplomats: INFJ INFP ENFJ ENFP  — user experience, clarity
-Sentinels: ISTJ ISFJ ESTJ ESFJ  — concrete details, process
-Explorers: ISTP ISFP ESTP ESFP  — hands-on, action-first
-```
+- **Train personas**: when their prompts fail, the fixer edits tool code. This is where the system learns.
+- **Eval personas**: no fixes applied. Pure measurement of whether improvements generalize.
 
 ## Scoring
 
-Each question is scored on:
+A prompt **passes** when: response is complete AND action requirement met AND not stuck AND zero errors.
 
 | Metric | What it measures |
 |--------|-----------------|
-| `completed` | Did the LLM produce a substantial answer? |
-| `isActionRequest` | Does the question ask for a mutation? (context-aware — "how does adding work?" is NOT an action) |
-| `writeToolCalled` | For action requests, did the LLM actually call a write tool? |
-| `actionRequirementMet` | For action requests, did the assistant either call a write tool or correctly explain a valid no-op? |
-| `stuck` | Action request + no write tool + 5+ reads = stuck in read loop |
-| `errorsFound` | MCP tool errors during the answer |
-
-A question **passes** when: completed AND actionRequirementMet AND not stuck AND zero errors.
-
-## Metrics
-
-Persistent metrics across runs in `.mcp-evolve/metrics.json`:
-
-- **Per-persona**: success rate history, staleness (runs since last failure), fixes generated
-- **Per-tool**: call counts, error rates, which personas exercise each tool
-- **System**: fix success rate, escalation productivity, plateau detection
-
-```bash
-npx mcp-evolve status  # Quick view of all metrics
-```
+| `completed` | Did the LLM produce a substantial response? |
+| `isActionRequest` | Does the prompt ask for a mutation? (context-aware) |
+| `writeToolCalled` | For actions, did the LLM call a write tool? |
+| `actionRequirementMet` | Action: write tool called or valid no-op explained |
+| `stuck` | Action + no write tool + 5+ reads = stuck in read loop |
+| `errorsFound` | MCP tool errors during the response |
 
 ## Data files
 
@@ -268,54 +280,44 @@ npx mcp-evolve status  # Quick view of all metrics
 .mcp-evolve/
   logs/              Raw run logs (one JSON per run)
   baselines/         Score snapshots for regression comparison
-  golden-set.json    Permanent regression questions
+  prompt-set.json    Active prompt set (train + golden)
+  golden-set.json    Permanent regression prompts (legacy mode)
   metrics.json       Accumulated metrics across runs
 ```
 
-## Self-test
-
-mcp-evolve can test itself. The `self-test/` directory contains:
-
-- An MCP server (`server.mjs`) that wraps mcp-evolve's own data as MCP tools
-- 5 personas (QA lead, DevOps, Architect, New Contributor, Curator)
-- A knowledge base about mcp-evolve concepts
-
-```bash
-cd /path/to/mcp-evolve
-npx mcp-evolve -c self-test/evolve.config.mjs --dry-run
-```
-
-## The story
-
-mcp-evolve was born from testing a restaurant POS MCP server. Key discoveries along the way:
-
-1. **The scorer lied.** `ACTION_PATTERN.test(undefined)` returned `false`, making action failures invisible. Three "100% success" cycles were fake. Lesson: score what matters.
-
-2. **LLMs hallucinate test data.** The question generator invented "Hefeweizen" but the real product was "Appenzeller Weissbier". The LLM searched 10+ times and never found it. Fix: prefetch real entity names from the system.
-
-3. **Auth paths diverge silently.** Read tools worked in dev mode, write tools didn't — different code paths. Only caught when the full pipeline reached a write call.
-
-4. **Escalation is feature development.** "Generate a harder test" and "identify the next feature" are the same operation. A test that fails IS a feature gap. The fix cycle IS the implementation.
-
-5. **Context-aware action detection matters.** "How does the system add a product?" is a question, not a command. Naive verb matching (`/\badd\b/`) produces false positives. mcp-evolve uses context patterns to distinguish.
-
-6. **Don't escalate until you've fixed what's broken.** Adding harder questions while existing ones fail just drags scores down. Golden-only mode: fix first, explore later.
-
 ## Examples
 
-### Task Manager (proof of concept)
+### Task Manager
 
-`examples/task-manager/` — a family task manager with 120 seeded tasks, deliberately sloppy tool descriptions, and 3 planted bugs. 5 personas (Alex, Sam, Mia, Grandma Ruth, Neighbor Dave) test it.
+`examples/task-manager/` — a family task manager with 180 seeded tasks, a backend API (`task-api.mjs`), and a deliberately sloppy MCP wrapper (`server.mjs`) with planted bugs. 5 personas test it.
 
 ```bash
 node bin/cli.mjs -c examples/task-manager/evolve.config.mjs -v
 ```
 
-Round 1 (35 runs) showed mcp-evolve improving the server from 70% → 100%, adding normalizeStatus, overdue filtering, tag filters, priority sorting, pagination, and a cross-assignee hint system — all automatically. See `docs/RESULTS-ROUND-1.md`.
+See `docs/RESULTS-ROUND-*.md` for detailed results across 7 rounds.
 
 ### Restaurant POS (Pubman)
 
-See `examples/restaurant-pos/` for the full Pubman configuration.
+See `examples/restaurant-pos/` for the Pubman configuration.
+
+## The story
+
+mcp-evolve was born from testing a restaurant POS MCP server. Key discoveries:
+
+1. **The scorer lied.** `ACTION_PATTERN.test(undefined)` returned `false`, making action failures invisible. Three "100% success" runs were fake.
+
+2. **LLMs hallucinate test data.** The prompt generator invented "Hefeweizen" but the real product was "Appenzeller Weissbier". Fix: prefetch real entity names.
+
+3. **Fix the tool, not the model.** Bad tool descriptions cause the same failures across all models. Improving the MCP description helps every LLM.
+
+4. **Model errors ARE MCP bugs.** If 3+ prompts fail because the model can't figure out the tools, the tools are confusing. The model-error fixer creates convenience tools and clearer descriptions.
+
+5. **Escalation is feature development.** A test that consistently fails IS a feature gap. The fix cycle IS the implementation.
+
+6. **Date handling is unnecessary.** Anchor-relative seed data + obsolete prompt removal handles stale dates. No date context injection needed.
+
+7. **Don't reset if you don't need to.** Evolving data is fine — obsolete prompts get replaced, probes are relative.
 
 ## Prerequisites
 
