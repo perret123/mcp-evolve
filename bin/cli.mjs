@@ -48,6 +48,8 @@ const { values: args, positionals } = parseArgs({
     escalate: { type: 'boolean' },
     'no-escalate': { type: 'boolean' },
     'streak-threshold': { type: 'string' },
+    'init-seed': { type: 'boolean' },
+    'mcp-discovery': { type: 'boolean' },
     config: { type: 'string', short: 'c' },
     verbose: { type: 'boolean', short: 'v' },
     help: { type: 'boolean', short: 'h' },
@@ -67,6 +69,7 @@ mcp-evolve — Self-improving test harness for MCP servers
 Commands:
   (default)    Run the full test loop
   init         Scaffold evolve.config.mjs and starter files
+  init-seed    Auto-generate describeState from live MCP server data
   status       Show current metrics, persona map, golden set
 
 Options:
@@ -81,6 +84,8 @@ Options:
   --no-escalate          Disable auto-escalation
   --regression           Replay baseline prompts
   --answerer-model <m>   Override answerer model (e.g. sonnet)
+  --init-seed            Scan data source and generate seed state description
+  --mcp-discovery        Force MCP discovery mode (skip script, use discoveryPrompt)
   --streak-threshold <n> Consecutive 100% runs before escalation (default: 3)
   -v, --verbose          Verbose output
   -h, --help             Show this help
@@ -114,6 +119,16 @@ if (command === 'init') {
     console.error('Init failed.');
     process.exit(1);
   }
+  process.exit(0);
+}
+
+if (args['init-seed'] || command === 'init-seed') {
+  const { initSeed } = await import('../lib/init-seed.mjs');
+  const seedConfig = await loadConfig('.', args.config);
+  await initSeed(seedConfig, {
+    verbose: args.verbose,
+    mcpDiscovery: args['mcp-discovery'],
+  });
   process.exit(0);
 }
 
