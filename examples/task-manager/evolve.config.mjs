@@ -33,9 +33,6 @@ export default {
 
   writeTools: ['create_task', 'update_task', 'delete_task'],
 
-  nextWeekdayMode: 'following-week',
-  relativeDateRules: '"next [weekday]" means the occurrence in the following week when that day is still ahead in the current week. Example: Monday -> next Friday = the Friday of the following week.',
-
   dataDir: join(EXAMPLE_DIR, '.mcp-evolve'),
 
   // --- Model configuration ---

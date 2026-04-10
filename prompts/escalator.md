@@ -14,7 +14,6 @@ Before generating:
 Rules:
 - Generate exactly 1 prompt per persona provided
 - Use the persona's natural speaking style
-- ALWAYS use relative dates — NEVER absolute dates
 - In the "why" field, note what this prompt covers that existing prompts don't
 
 For EACH prompt, also generate:

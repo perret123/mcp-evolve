@@ -63,7 +63,7 @@ SEED → GENERATE prompts → RUN (LLM + MCP tools, name-only user context)
 - **Never optimize for fewer tool calls** — correctness over efficiency
 - **No truncation** in grader — full tool results are worth the tokens
 - **Parallel fixers** in isolated git worktrees, merged by reviewer
-- **Escalation uses relative dates** ("next week", not "April 10th") — stays valid across runs
+- **Date handling off by default** — `dateHandling: 'off' | 'auto' | 'always'`. Obsolete prompt marking handles stale dates naturally. Enable for date-heavy MCP servers if needed.
 - **Replay always runs** after fixing (not gated on buildCommand)
 - **Every prompt has a probe** — before/after reads check state invariants (metamorphic testing)
 - **Probes are invisible to the answerer** — it only sees the natural prompt
