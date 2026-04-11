@@ -123,3 +123,46 @@ test('validateReviewerOutput rejects merge decision with fabrication conclusion'
   });
   assert.ok(errs.some(e => /fabrication/.test(e)));
 });
+
+test('validateReviewerOutput returns error for undefined input', () => {
+  const errs = validateReviewerOutput(undefined);
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /not an object/);
+});
+
+test('validateReviewerOutput returns error for null input', () => {
+  const errs = validateReviewerOutput(null);
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /not an object/);
+});
+
+test('validateReviewerOutput handles null audit entries without crashing', () => {
+  const errs = validateReviewerOutput({
+    audits: [null, {
+      branch: 'x',
+      fixType: 'tool_description',
+      backendCheck: { performed: true, method: 'read', evidence: ['ok'], conclusion: 'legitimate' },
+      decision: 'merge',
+      reason: 'fine',
+    }],
+    promptReviews: [],
+  });
+  // Should have one error for the null entry, no errors for the valid entry
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /audit entry is not an object/);
+});
+
+test('validateReviewerOutput handles null prompt review entries without crashing', () => {
+  const errs = validateReviewerOutput({
+    audits: [],
+    promptReviews: [null, {
+      promptId: 'p::q',
+      persona: 'p',
+      invariantStatus: 'correct',
+      decision: 'keep',
+      reason: 'ok',
+    }],
+  });
+  assert.equal(errs.length, 1);
+  assert.match(errs[0], /prompt review entry is not an object/);
+});
