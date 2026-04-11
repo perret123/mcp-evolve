@@ -50,6 +50,8 @@ const { values: args, positionals } = parseArgs({
     'streak-threshold': { type: 'string' },
     'init-seed': { type: 'boolean' },
     'mcp-discovery': { type: 'boolean' },
+    'current-run': { type: 'string' },
+    'total-runs': { type: 'string' },
     config: { type: 'string', short: 'c' },
     verbose: { type: 'boolean', short: 'v' },
     help: { type: 'boolean', short: 'h' },
@@ -86,6 +88,8 @@ Options:
   --answerer-model <m>   Override answerer model (e.g. sonnet)
   --init-seed            Scan data source and generate seed state description
   --mcp-discovery        Force MCP discovery mode (skip script, use discoveryPrompt)
+  --current-run <n>      Current run number (for multi-run progress tracking)
+  --total-runs <n>       Total planned runs (for multi-run progress tracking)
   --streak-threshold <n> Consecutive 100% runs before escalation (default: 3)
   -v, --verbose          Verbose output
   -h, --help             Show this help
@@ -215,4 +219,6 @@ await run(config, {
   streakThreshold: args['streak-threshold'] ? parseInt(args['streak-threshold'], 10) : 3,
   verbose: args.verbose,
   personaFilter: args.persona,
+  currentRun: args['current-run'] ? parseInt(args['current-run'], 10) : 1,
+  totalRuns: args['total-runs'] ? parseInt(args['total-runs'], 10) : 1,
 });
