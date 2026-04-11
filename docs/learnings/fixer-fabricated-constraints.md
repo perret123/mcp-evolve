@@ -1,8 +1,8 @@
 # Anti-pattern: Fixer fabricates domain constraints
 
-**Round:** 8 (pubman, 10 runs)
+**Round:** 8 (pubman, 10 runs) — surfaced again in Round 9 (runs 11-20)
 **Severity:** High — silently introduces incorrect business logic
-**Status:** Mitigated in `prompts/fixer.md` and `prompts/fixer-model-error.md`
+**Status:** Mitigated in `prompts/fixer.md` and `prompts/fixer-model-error.md`; manually reverted in pubman write.ts between Run 16 and 17 of Round 9
 
 ## What happened
 
@@ -63,3 +63,11 @@ The smell test: *"If I removed this guard, would the backend still reject the ba
 The MCP layer should be a **thin, faithful translation** of the backend's capabilities. Its job is to describe tools clearly, route parameters, and surface results — not to second-guess the backend or add semantic opinions. Domain constraints belong in one place: the system of record. When the MCP and the backend disagree, the backend wins.
 
 The fixer's superpower is iterating toward better tool descriptions and schemas. Its failure mode is iterating toward a mirror of the backend that has been subtly rewritten from the fixer's imagination.
+
+## Addendum (Round 9, runs 11-20)
+
+Between Run 16 and 17 of Round 9, the pubman `occupiedTableError` guard was manually reverted after the user flagged that multi-occupancy is actually supported. By that point the guard had already been **reinforced** by subsequent fixer runs — the error text became more insistent ("Calling this tool again will ALWAYS fail", "REQUIRED NEXT ACTION"), compounding the false constraint across multiple runs.
+
+**This demonstrates a second-order problem:** even with `prompts/fixer.md` updated mid-Round 9 to forbid fabricated constraints for NEW edits, the existing fabricated code became the fixer's baseline and was further reinforced on subsequent passes. The fixer treated the existing fabricated error as "the current behavior" and optimized its text for LLM retry-stopping, not for semantic correctness.
+
+**Lesson:** fabricated constraints compound if left in place. Once detected, revert them immediately — don't hope the next fixer pass will undo them. The fixer's incentive is always "make tests greener", and a constraint that successfully stops retries is a local maximum it will defend.
