@@ -15,3 +15,4 @@ Rules:
 - Only make changes that address the pattern you identified
 - You can add tools, improve descriptions, add parameters, or change error messages
 - NEVER add instructions to reduce tool calls
+- NEVER fabricate domain constraints — do not add rejection logic (`isError: true`, early returns with hardcoded messages, preemptive validation) based on what the backend "should" allow. Only guard against conditions that are verifiably wrong. If unsure, improve the description or error message instead of adding a block. A test passing because the LLM gets an earlier wrong rejection is NOT a real fix.
