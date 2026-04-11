@@ -32,7 +32,6 @@ const { values: args, positionals } = parseArgs({
     limit: { type: 'string', short: 'l' },
     'dry-run': { type: 'boolean' },
     'skip-fixer': { type: 'boolean' },
-    'skip-reviewer': { type: 'boolean' },
     train: { type: 'boolean' },
     eval: { type: 'boolean' },
     'answerer-model': { type: 'string' },
@@ -80,7 +79,6 @@ Options:
   -l, --limit <n>        Prompts per persona (default: from config)
   --dry-run              Generate prompts only, don't run
   --skip-fixer           Skip auto-fix step
-  --skip-reviewer        Skip review step
   --train                Train personas only
   --eval                 Eval personas only (hold-out, no fixer)
   --escalate             Force escalation
@@ -251,7 +249,6 @@ await run(config, {
   promptLimit: args.limit ? parseInt(args.limit, 10) : undefined,
   dryRun: args['dry-run'],
   skipFixer: args['skip-fixer'],
-  skipReviewer: args['skip-reviewer'],
   trainOnly: args.train,
   evalOnly: args.eval,
   answererModel: args['answerer-model'],

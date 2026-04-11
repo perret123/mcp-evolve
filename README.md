@@ -175,7 +175,7 @@ export default {
   // -- Prompt generation --
   promptsPerPersona: 2,
   initPrompts: 10,
-  adversarialRate: 0.1,    // 10% prompts with wrong names/nonexistent IDs
+  adversarialRatio: 0,
 
   // -- Models (all default to sonnet) --
   answererModel: 'ollama:qwen3.5:35b-a3b',  // local = free
