@@ -73,6 +73,7 @@ Commands:
   init         Scaffold evolve.config.mjs and starter files
   init-seed    Auto-generate describeState from live MCP server data
   status       Show current metrics, persona map, golden set
+  failing      Manage the failing-prompts store (list | clear <id> | clear-all)
 
 Options:
   -p, --persona <id>     Run single persona
@@ -186,6 +187,55 @@ if (command === 'status') {
   }
 
   process.exit(0);
+}
+
+if (command === 'failing') {
+  const { loadFailingPrompts, removeFailing, clearAllFailing } = await import('../lib/failing-prompts.mjs');
+  const subCommand = positionals[1];
+  const arg = positionals[2];
+
+  if (subCommand === 'list' || !subCommand) {
+    const store = loadFailingPrompts(config);
+    if (store.entries.length === 0) {
+      console.log('No failing entries.');
+      process.exit(0);
+    }
+    const byPersona = {};
+    for (const e of store.entries) {
+      const key = e.persona || '(pattern)';
+      (byPersona[key] = byPersona[key] || []).push(e);
+    }
+    for (const [persona, entries] of Object.entries(byPersona)) {
+      console.log(`\n${persona}:`);
+      for (const e of entries) {
+        const preview = e.kind === 'pattern'
+          ? `[pattern] ${e.patternRegex?.slice(0, 80) || ''}`
+          : `"${(e.prompt || '').slice(0, 80)}"`;
+        console.log(`  ${e.id} [${e.reason}] ${preview}`);
+      }
+    }
+    console.log(`\nTotal: ${store.entries.length} entries`);
+    process.exit(0);
+  }
+
+  if (subCommand === 'clear' && arg && arg !== 'all') {
+    removeFailing(config, arg);
+    console.log(`Removed entry ${arg}`);
+    process.exit(0);
+  }
+
+  if (subCommand === 'clear-all' || (subCommand === 'clear' && arg === 'all')) {
+    clearAllFailing(config);
+    console.log('Cleared all failing entries');
+    process.exit(0);
+  }
+
+  console.error(`Unknown failing subcommand: ${subCommand}`);
+  console.error('Usage:');
+  console.error('  node bin/cli.mjs failing list');
+  console.error('  node bin/cli.mjs failing clear <id>');
+  console.error('  node bin/cli.mjs failing clear-all');
+  process.exit(1);
 }
 
 // Validate config for run
