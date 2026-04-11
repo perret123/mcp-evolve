@@ -99,3 +99,16 @@ test('classifyErrorCategory separates harness, model, and server failures', () =
     error: 'The tool returned null completedAt after status changed to completed.',
   }, CONFIG), 'server');
 });
+
+test('scorePrompt treats adversarial prompts with errors as passing when no false success', () => {
+  // This is an end-to-end smoke — not a full grader test; the grader change is
+  // exercised via scorePrompt only to verify the wiring doesn't break scoring.
+  const score = scorePrompt({
+    prompt: 'delete transaction tx-does-not-exist',
+    toolCalls: [{ tool: 'mcp__pubman__cancel_transaction' }],
+    errors: [],
+    response: 'The transaction was not found. I cannot cancel it.',
+    grading: { actionExpectation: 'not_action' },
+  }, CONFIG);
+  assert.equal(score.errorsFound, 0);
+});

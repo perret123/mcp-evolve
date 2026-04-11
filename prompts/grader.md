@@ -26,7 +26,7 @@ Action judgment:
 - Mutation requested and write tool called: `actionExpectation: "write_performed"`
 - Mutation requested but state already correct and assistant explained: `actionExpectation: "valid_noop"`
 - Otherwise: `actionExpectation: "missing_write"`
-- If `expectedOutcome: "error"` is set and the tool returned success: FAIL. The server silently accepted invalid input.
+- **Adversarial prompts:** if the harness tells you `adversarial: true` for this prompt, the prompt is DESIGNED to fail. Score as `pass` when errors are present. Only fail an adversarial prompt when the tool call returned a FALSE SUCCESS (accepted invalid input silently).
 
 Reply with ONLY a JSON object:
 
