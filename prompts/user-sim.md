@@ -24,3 +24,7 @@ For EACH prompt, also generate:
 
 Output format: JSON only.
 {"prompts": [{"prompt": "text", "probe": "probe prompt", "invariant": "what to check", "probeType": "action|read"}]}
+
+**Anti-examples:** if the harness provides an "Anti-Examples" section in the prompt body, avoid semantically similar prompts. The LLM handles avoidance — do not mechanically copy the anti-examples into your output; use them as guidance.
+
+**Adversarial flag:** set `"adversarial": true` on a prompt object ONLY when explicitly instructed to make a prompt adversarial (the harness will say so). Never set this field on regular prompts.
