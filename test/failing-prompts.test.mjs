@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -117,6 +117,57 @@ test('normalizeErrorText lowercases and strips volatile ids', () => {
   const key = normalizeErrorText(raw);
   assert.equal(key.includes('abc-123-xyz'), false);
   assert.match(key, /already occupied/);
+});
+
+test('normalizeErrorText handles edge cases and preserves domain vocabulary', () => {
+  // Null/empty/undefined
+  assert.equal(normalizeErrorText(''), '');
+  assert.equal(normalizeErrorText(null), '');
+  assert.equal(normalizeErrorText(undefined), '');
+
+  // No patterns matched — return as-is (lowercased, trimmed)
+  assert.equal(
+    normalizeErrorText('table is already occupied'),
+    'table is already occupied'
+  );
+
+  // Short digit runs (< 4) are preserved
+  assert.equal(normalizeErrorText('error 123'), 'error 123');
+
+  // Long digit runs (>= 4) are stripped
+  assert.equal(normalizeErrorText('error 1234'), 'error');
+
+  // Canonical UUID is stripped
+  assert.equal(
+    normalizeErrorText('550e8400-e29b-41d4-a716-446655440000 failed'),
+    'failed'
+  );
+
+  // Uppercase UUID-like tokens are lowercased and stripped
+  assert.equal(
+    normalizeErrorText('error AT 550E8400-E29B-41D4 BOOM'),
+    'error at boom'
+  );
+
+  // Domain vocabulary with hyphens but NO digits is preserved
+  assert.equal(
+    normalizeErrorText('walk-in at Tisch-5 already occupied'),
+    'walk-in at already occupied'
+  );
+  assert.equal(
+    normalizeErrorText('fast-book requested'),
+    'fast-book requested'
+  );
+  assert.equal(
+    normalizeErrorText('end-of-day report'),
+    'end-of-day report'
+  );
+
+  // Hyphenated tokens WITH digits ARE stripped
+  assert.equal(
+    normalizeErrorText('transaction tx-12345 cancelled'),
+    'transaction cancelled'
+  );
 });
 
 test('saveFailingPrompts is idempotent and preserves version', () => {
