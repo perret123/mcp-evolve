@@ -1,40 +1,30 @@
-# Round 9 — Handover Notes
+# Round 9 — Handover Notes (CLOSED)
 
-**Written:** 2026-04-11 ~18:30 CEST (during Run 18)
-**Purpose:** everything a new chat session needs to continue Round 9 and start Round 10 without re-deriving context.
+**Originally written:** 2026-04-11 ~18:30 CEST (during Run 18)
+**Updated:** 2026-04-11 ~20:15 CEST (closeout)
+**Status:** Round 9 closed. Runs 11-18 complete. Run 19 aborted mid-run. Run 20 skipped. See `actual.md` Closeout section for full rationale.
 
-## Current state (at handover)
+## Current state
 
-### Runs 11-20 in progress
-- **Runs 11-17 complete** — results in `actual.md`, summary table and detailed analysis
-- **Run 18 running** at time of writing (started 18:14 CEST, at ~3/36 prompts last check)
-- **Runs 19-20 queued** — bash loop `pubmanager/scripts/evolve-runs-11-to-20.sh` will continue automatically
-- **Background task ID:** `bo3zlcaxq` in this session — new session won't have access to the streaming output, but the final results will be in `pubmanager/.mcp-evolve/logs/run-2026-04-11T*.json`
-- **Expected completion:** ~21:00 CEST (3 runs × ~60min)
+### Final run summary
+- **Runs 11-18 complete** — all scored, analysed, documented in `actual.md`
+- **Run 19 aborted** at 63% through its prompt-running phase (26/41 prompts graded, no fixer/scoring/log)
+- **Run 20 skipped** entirely
+- **No background processes** — wrapper (`evolve-runs-11-to-20.sh`) and node runner killed ~20:10 CEST
+- **Highest score:** Run 18 at 53.7% all / 90.9% golden — the clean post-revert baseline
 
-### What to do when runs finish
-
-1. Extract Run 18-20 scores from `pubmanager/.mcp-evolve/logs/`:
-   ```python
-   python3 -c "
-   import json, os
-   for f in sorted(os.listdir('.mcp-evolve/logs/')):
-     if f > 'run-2026-04-11T16':
-       d = json.load(open(f'.mcp-evolve/logs/{f}'))
-       s = d.get('scores',{}).get('all',{})
-       sm = d.get('summary',{})
-       cats = sm.get('errorsByCategory',{})
-       print(f'{f}: {s.get(\"successRate\")}% / {sm.get(\"totalPrompts\")}p / {sm.get(\"totalErrors\")}e (s:{cats.get(\"server\",0)} m:{cats.get(\"model\",0)})')
-   "
-   ```
-2. Update `docs/results-round-9-pubman/actual.md` with the final row in the summary table, trajectory charts, and Round 10 recommendations section finalized.
-3. Mark Round 9 complete — move "in progress" → "COMPLETE" in title.
+### Why stopped early
+The round's goals (discover + remediate the fabricated-constraint anti-pattern, exercise new instrumentation, produce actionable Round 10 plan) were met. Run 18 provided the clean data point confirming the hardened fixer prompt held. Running 19 and 20 would have produced noise against a stale scoring reference (23 of 32 Run 18 errors were contaminated probe-invariant violations). Round 10 requires architectural changes first — see specs below.
 
 ## Key files (read these first in a new session)
 
+### Round 10 design specs (NEW — written 2026-04-11 during closeout)
+- `mcp-evolve/docs/superpowers/specs/2026-04-11-reviewer-audit-upgrade-design.md` — Spec 1: upgrade existing reviewer to audit-first-merge-second, add failing-prompts store, anti-example generator feed, adversarial flag support. **Round-10 blocking.**
+- `mcp-evolve/docs/superpowers/specs/2026-04-11-train-eval-golden-redesign-design.md` — Spec 2: two orthogonal fields (lifecycle + evaluation), ephemeral train+holdout, promoter-agent graduation, clean-slate migration. Depends on Spec 1.
+
 ### Context & findings
 - `mcp-evolve/docs/results-round-8-pubman/` — Round 8 (runs 1-10) results, predicted vs actual
-- `mcp-evolve/docs/results-round-9-pubman/actual.md` — Round 9 current state, trajectory, fabricated-constraint incident, Round 10 recommendations
+- `mcp-evolve/docs/results-round-9-pubman/actual.md` — Round 9 final state, trajectory, fabricated-constraint incident, full closeout with Round 10 plan
 - `mcp-evolve/docs/learnings/fixer-fabricated-constraints.md` — the anti-pattern doc with 2 addendums, circular-error trap explanation
 - `mcp-evolve/CLAUDE.md` — mcp-evolve architecture overview
 
@@ -72,48 +62,55 @@ These were decided in this session. A new session should honor them, not questio
 
 6. **Aggressive Round 9 config** (streakThreshold=2, competitionStreakMultiplier=1.5, graduationStreak=3) — user wants faster feedback loops. Don't reset to defaults.
 
-## Known open issues
+## Known open issues — status after closeout
 
-### Must address in Round 10
+### Resolved by design (covered in specs)
 
-1. **Fabricated constraint risk** — even with strengthened prompts, the fixer might still try to re-add the occupied-table guard or similar. Run 18-20 will reveal whether the new mandatory checklist works. If it fails, need an actual review agent (not just a prompt rule).
+1. **Fabricated constraint risk** → Spec 1 (Reviewer Audit Upgrade). The hardened fixer prompt held in Run 18, but prompts alone are not enough — Spec 1 adds an evidence-based audit checkpoint between fixer and merge that can reject diffs with concrete backend-check evidence.
 
-2. **Probe invariant contamination** — at least one probe (metamorphic invariant for Tisch 5) was generated during the guard era and is now a false positive. Others may exist. Need audit.
+2. **Probe invariant contamination** → resolved as a side effect of Spec 1. When a contaminated invariant triggers a fix attempt, the reviewer's case matrix can drop the prompt (and its invariant) from scoring and push it to the failing-prompts store. No separate regeneration mechanism needed in V1.
 
-3. **Eval personas = 0 in every run** — waiter-payments, waiter-management, new-employee never actually ran. Probably config/filtering bug. Quick investigation needed.
+3. **Eval personas = 0 in every run** → root cause identified (persona.group vs prompt.group namespace collision). Spec 2 resolves by introducing two orthogonal fields: `lifecycle: train|golden` + `evaluation: fixer|holdout`. Personas lose their `group` field entirely.
 
-4. **State pollution from write-tool prompts** — "seat guest at Tisch 5" runs 3× = 3 extra guests. User proposed optional `freshTrainEach` mode with 4 design options for graduation (see actual.md Recommendation 1). Needs brainstorm before implementation.
+4. **State pollution from write-tool prompts** → Spec 2 resolves by making train and holdout ephemeral per run. The design question about graduation mechanics (4 options in original actual.md Recommendation 1) was resolved in favor of a new Promoter-Agent (option a from the discussion).
 
-### Nice-to-have for Round 10
+### Scheduled for Round 10 (not spec-covered, but planned)
 
-5. **Sonnet baseline** — run 10 iterations with sonnet as answerer to compare plateau behavior.
-6. **Timings.jsonl analytics** — mine the structured log for per-tool/per-persona patterns.
-7. **Polluted error messages cleanup** — tone down the `⛔ STOP` / `REQUIRED NEXT ACTION` shouty hints.
-8. **Audit for other fabricated constraints** — grep pubman-mcp for similar patterns.
+5. **Sonnet baseline** — 5 runs with sonnet as answerer, separate log ablage. After the main Round 10 qwen runs complete.
+6. **Timings.jsonl analytics** — low-priority analysis, pulls data from existing archive.
+
+### Deferred to backlog (after Round 10 stabilises)
+
+7. **Polluted error messages cleanup** — tone down `⛔ STOP` / `REQUIRED NEXT ACTION` in `packages/pubman-mcp/src/tools/helpers.ts`. Not blocking anything, just noise.
+8. **Audit for other fabricated constraints** — grep pubman-mcp for `isError: true` + hardcoded domain messages. Each hit is a candidate for "does the backend actually enforce this?" investigation.
+9. **Auto-expiry of failing-prompts entries** when the triggering error signature no longer appears in MCP source. V2 if the failing-prompts store grows unmanageable.
 
 ## What a new chat session should do first
 
 ```
-1. Read docs/results-round-9-pubman/HANDOVER.md (this file)
-2. Read docs/results-round-9-pubman/actual.md (full context)
-3. Check if Runs 18-20 finished:
-     grep "RUN [0-9]\+ \(COMPLETE\|FAILED\)" .mcp-evolve/run-11-to-20.log
-4. If complete: extract scores, update actual.md with final results
-5. If still running: wait or query pubmanager/.mcp-evolve/logs/
-6. Then ask the user what Round 10 priorities should be
+1. Read docs/results-round-9-pubman/HANDOVER.md (this file) — Round 9 status & context
+2. Read docs/results-round-9-pubman/actual.md (full round narrative including Closeout section)
+3. Read docs/superpowers/specs/2026-04-11-reviewer-audit-upgrade-design.md (Spec 1)
+4. Read docs/superpowers/specs/2026-04-11-train-eval-golden-redesign-design.md (Spec 2)
+5. Ask the user: proceed with Spec 1 implementation (writing-plans skill), or discuss specs first?
 ```
 
-## Git state at handover
+Round 10 starts only after Spec 1 is implemented and verified. Do NOT start a new run loop before the reviewer upgrade is in place — fabrication risk is unmitigated without it.
 
-**mcp-evolve** (master branch):
+## Git state at closeout
+
+**mcp-evolve** (master branch) — same as mid-run handover, plus the two new specs in `docs/superpowers/specs/`:
 ```
 4c9d66c docs(round-9): add Round 9 in-progress results for pubman (runs 11-17)
 3f0cd7e feat(prompts): mandatory self-check before adding rejection logic
 06b4e7f docs(learnings): add Round 9 addendum on compounding fabricated constraints
 b6339c4 feat(prompts): forbid fabricated domain constraints in fixer
-b258bcd feat: progress tracker, timings log, defensive metrics, round 8 results
-78eed66 feat: init-seed, configurable timeouts/thresholds, legacy baseline compat
 ```
+Uncommitted at closeout:
+- `docs/results-round-9-pubman/actual.md` (Closeout section added, Run 18 data)
+- `docs/results-round-9-pubman/HANDOVER.md` (this file, closeout update)
+- `docs/superpowers/specs/2026-04-11-reviewer-audit-upgrade-design.md` (NEW)
+- `docs/superpowers/specs/2026-04-11-train-eval-golden-redesign-design.md` (NEW)
 
 **pubmanager** (release/3.0.8 branch):
 ```
@@ -122,15 +119,26 @@ b258bcd feat: progress tracker, timings log, defensive metrics, round 8 results
 3a3813f6 feat: pubman-mcp improvements from mcp-evolve Round 8 (10 runs)
 c4abc47a feat: mcp-evolve integration
 ```
+Uncommitted at closeout: any changes in `packages/pubman-mcp/src/tools/helpers.ts` and `read.ts` that accumulated during Runs 11-18 but were never committed. Review and decide whether to keep, amend, or revert before starting Round 10 implementation.
 
-pubmanager has uncommitted changes in `packages/pubman-mcp/src/tools/helpers.ts` and `read.ts` from ongoing Run 18 fixer activity — these should be reviewed when the run finishes.
+## Background processes — all stopped
 
-## Background processes still running
+Runtime services that were running during Round 9 and should still be available (but verify before Round 10):
+- ollama at localhost:11434 (may need restart)
+- Firebase emulator at localhost:8080/5001/9099/9199 (keep running across sessions is fine)
+- pubman-mcp `dist/` rebuilt after both reverts (re-verify before Round 10)
 
-- **bo3zlcaxq** in the current session — Runs 18-20 loop (will finish naturally)
-- **PID 95265** — the top-level bash process for the loop (see `ps aux | grep evolve-runs-11-to-20`)
-- The ollama model is running at localhost:11434
-- The Firebase emulator is running at localhost:8080/5001/9099/9199
-- The pubman-mcp dist/ is up to date (rebuilt after both reverts)
+Stopped at closeout (~20:10 CEST):
+- Wrapper loop `evolve-runs-11-to-20.sh` (was PID 95278)
+- Node runner for Run 19 (was PID 97293, `--current-run 19 --total-runs 20`)
+- Parent zsh wrapper (was PID 95265)
 
-If you need to stop everything: `pkill -f "evolve-runs-11-to-20"` will kill the wrapper loop, but the currently-running node mcp-evolve process will finish its current run first.
+## Archive locations
+
+Everything from Round 8+9 is preserved under `pubmanager/.mcp-evolve/archive/round-9/`:
+- `archive/round-9/logs/` — all per-run JSON logs (Runs 1-18)
+- `archive/round-9/timings.jsonl` — full event log
+- `archive/round-9/metrics.json` — metrics snapshot
+- `pubmanager/.mcp-evolve/prompt-set.json.round-9-final` — final prompt set (36 entries: 25 train + 11 golden)
+
+Spec 2's clean-slate migration will wipe the live `prompt-set.json` but leave the archive untouched.

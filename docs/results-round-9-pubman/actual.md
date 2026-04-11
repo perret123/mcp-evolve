@@ -1,18 +1,19 @@
-# Round 9: Pubman MCP — Runs 11-20 (in progress)
+# Round 9: Pubman MCP — Runs 11-18 (CLOSED, stopped early)
 
-**Date:** 2026-04-11, 08:29 UTC start (10:29 CEST)
+**Date:** 2026-04-11, 08:29 UTC start (10:29 CEST) — closed ~20:10 CEST
 **Target:** pubman-mcp (local stdio, Firestore emulator)
 **Config:** `pubmanager/evolve.config.mjs`
 **Models:** `ollama:qwen3.5:35b-a3b-coding-nvfp4` (most), sonnet (fixer/reviewer/prefetch)
-**Personas:** 9 (6 train, 3 eval)
+**Personas:** 9 (6 train, 3 eval — but eval-bucket silently broken, see closeout)
 **Streak config:** escalation at 2, competition at 3, graduationStreak 3
 **Starting state (from Round 8):** prompt-set with 20 train + 7 golden = 27 prompts
+**Final state:** Runs 11-18 complete; Run 19 aborted mid-run; Run 20 skipped. Round stopped early to proceed with architectural redesign — see Closeout section at bottom.
 
-Round 9 is the continuation of Round 8 against the same pubman MCP. Round 8 established the first fixer commits, eliminated all server errors by Run 10, and identified the plateau around 45-50% success rate. Round 9 is about (a) continuing the improvement-regression-improvement cycle, (b) discovering and remediating the fabricated-constraint anti-pattern, and (c) exercising the new progress tracker and timings log instrumentation.
+Round 9 was the continuation of Round 8 against the same pubman MCP. Round 8 had established the first fixer commits, eliminated all server errors by Run 10, and identified the plateau around 45-50% success rate. Round 9's goals were (a) continuing the improvement-regression-improvement cycle, (b) discovering and remediating the fabricated-constraint anti-pattern, and (c) exercising the new progress tracker and timings log instrumentation. All three goals were met — the anti-pattern was discovered, documented, and the prompt hardening demonstrably held in Run 18. The round was then closed in favor of a structural redesign rather than continuing to produce noise against a broken scoring model.
 
 ---
 
-## Summary Table (Runs 11-17)
+## Summary Table (Runs 11-18, final)
 
 | Run | Success | Action | All  | Train | Golden | Errors | Server | Model | Duration | Notes |
 |-----|---------|--------|------|-------|--------|--------|--------|-------|----------|-------|
@@ -23,9 +24,9 @@ Round 9 is the continuation of Round 8 against the same pubman MCP. Round 8 esta
 | 15  | 27.3%   | 61.1%  | 44   | 33    | 11     | 79     | 2      | 76    | 85.1 min | Some prompts marked obsolete (-4) |
 | 16  | 30.8%   | 81.3%  | 39   | 28    | 11     | 75     | **0**  | 75    | 49.0 min | **Zero server errors** (2nd time in the project) |
 | 17  | 38.5%   | 66.7%  | 39   | 28    | 11     | 52     | 3      | 46    | 62.7 min | Recovery — despite the re-added fabricated guard still causing errors |
-| 18  | (running) | —   | 36   | 25    | 11     | —      | —      | —     | —        | Guard reverted; invariant-contamination surfaced |
-| 19  | (TBD)   | —      | —    | —     | —      | —      | —      | —     | —        | |
-| 20  | (TBD)   | —      | —    | —     | —      | —      | —      | —     | —        | |
+| 18  | **53.7%** | **76.5%** | 41 | 30   | 11     | 32     | 4      | 27    | 78.7 min | **Best run of Round 9.** Guard reverted (2nd time), hardened checklist held. Golden 90.9%, train 40%. 23/32 errors are contaminated probe-invariant violations (`harness:grading`), not real MCP bugs. |
+| 19  | aborted | —      | 26/41 partial | — | — | — | — | — | ~36 min (partial) | Stopped mid-run (63% of prompts done) for architectural redesign |
+| 20  | skipped | —      | —    | —     | —      | —      | —      | —     | —        | Skipped — round closed after Run 18 data confirmed hardening held |
 
 ---
 
@@ -110,9 +111,10 @@ Run 14: 29% █████████          ← escalation regression
 Run 15: 27% ████████           ← still regressed
 Run 16: 31% █████████          ← partial recovery (0 server errors!)
 Run 17: 39% ████████████       ← recovered to Run 11 level
+Run 18: 54% ████████████████   ← NEW HIGH, post-revert + hardening
 ```
 
-The pattern: steady improvement → large regression from escalation → slow recovery. This is the intended behavior; Round 8 showed the same shape.
+The pattern: steady improvement → large regression from escalation → slow recovery → breakthrough after the fabricated-guard revert and hardened checklist. Run 18 is the highest score of Round 9 and also matches Round 8's ceiling from a much cleaner state. The golden bucket hit 90.9% (10/11 passing), confirming that the main drag on earlier runs was the guard's feedback loop — not the underlying MCP.
 
 ### Prompt set evolution
 
@@ -190,20 +192,25 @@ These are **structural findings about mcp-evolve itself**, not about pubman. The
 
 ---
 
-## Status as of Run 18 start
+## Run 18 final state (last completed run)
 
-- **Prompt set:** 36 (25 train, 11 golden)
-- **Eval personas still 0** — same issue as Round 8, not yet investigated
-- **Fabricated guard:** reverted twice, prompt hardened, rebuilt dist
-- **Probe contamination:** known, not yet remediated (would need to regenerate invariants or mark polluted probes obsolete)
-- **Runs remaining:** 18, 19, 20 (~4 hours ETA)
+- **Prompt set:** 41 (30 train, 11 golden)
+- **Eval personas still 0** — silent bug confirmed in follow-up investigation (see Closeout)
+- **Fabricated guard:** reverted twice, prompt hardened, rebuilt dist — **held through Run 18**
+- **Probe contamination:** confirmed active — 23 of 32 errors are `harness:grading` (probe-invariant violations), most of which are false positives from the pre-revert invariant generation era
 
-### Expected behavior for Runs 18-20
+### What Run 18 validated and invalidated
 
-1. **First prompt in Run 18 already showed multi-occupancy working** — backend accepted going from 2 → 3 guests at Tisch 5
-2. **Probe invariants will throw false-positive failures** until they're regenerated — expect some `metamorphic invariant violated` grades that are actually correct behavior
-3. **If the strengthened prompt works** the fixer should not re-add the occupied-table guard
-4. **Model error count may rise** temporarily because the polluted probes will count LLM correctness as failures
+**Validated:**
+1. **Multi-occupancy works correctly in the backend** — probe readings showed Tisch 5 going from 2 → 3 guests cleanly
+2. **The strengthened fixer prompt holds** — no re-addition of the occupied-table guard across the full Run 18 fixer phase; the mandatory `grep`/`git log`/backend-read checklist blocked the regression
+3. **Round 8's ceiling (45-50%) was artificially constrained** by the fabricated guard — with it removed, Run 18 hit 53.7% cleanly on a stable prompt set
+4. **Golden set is robust** — 90.9% pass rate on the 11 golden prompts shows the promoted capabilities do genuinely work
+
+**Invalidated / remaining known issues:**
+1. Probe invariants from the guard era are still load-bearing and producing false positives — `harness:grading` error class dominates Run 18's 32-error tally
+2. `scores.eval` is still 0 — root cause now understood (persona.group vs prompt.group conflation, see Closeout)
+3. Shouty error messages in `helpers.ts` are still present but not causing failures anymore — backlog cleanup
 
 ---
 
@@ -251,4 +258,91 @@ These are **structural findings about mcp-evolve itself**, not about pubman. The
 
 ---
 
-*This document will be updated as Runs 18, 19, and 20 complete.*
+---
+
+## Closeout — Round 9 stopped early for architectural redesign
+
+**Decision date:** 2026-04-11 ~20:10 CEST
+**Decision context:** After Run 18 completed successfully (53.7% all / 90.9% golden, highest of the round) and while Run 19 was 63% through its prompt-running phase, Round 9 was stopped early. Run 19 was aborted mid-run, Run 20 was skipped entirely.
+
+### Why stop early
+
+1. **The round's goals were met.** Round 9 was about (a) continuing the improvement cycle, (b) discovering and remediating the fabricated-constraint anti-pattern, and (c) exercising the new progress tracker and timings log instrumentation. All three happened. Run 18 provided the clean data point needed to confirm the hardening worked. Runs 19-20 would have been noise-repetition, not new signal.
+2. **Probe contamination makes further runs noisy.** 23 of 32 Run 18 errors were `harness:grading` — probe-invariant violations from the guard-era invariant generation that enshrined incorrect expectations as ground truth. Every additional run adds more noise against a stale scoring reference.
+3. **No reviewer safety net yet.** Without the Reviewer Audit Upgrade (see specs below), each additional run carried fresh risk of the fixer re-fabricating constraints. With hardened prompts working but not bulletproof, stopping was safer than letting the loop run.
+4. **Clean-slate migration will wipe everything anyway.** The Train/Eval/Golden Redesign (see specs below) discards all 25 persistent train prompts AND all 11 golden prompts in favor of starting fresh on a clean architecture. Any work Runs 19-20 would have produced would be immediately garbage-collected.
+5. **Compute budget better spent on Sonnet baseline.** Round 10 includes a planned Sonnet-as-answerer baseline to separate "local-model plateau" from "architectural plateau". The ~3 hours Runs 19-20 would have consumed is a much better investment in that baseline.
+
+### Key discoveries from the post-Run-18 investigation
+
+After Run 18 finished and before stopping, a deeper architectural investigation surfaced several issues not visible from the run data alone. These shape Round 10's plan.
+
+**1. `scores.eval` silently broken for 20+ runs.** The bug is a namespace conflict: personas have `group: 'train' | 'eval'` (hold-out intent) and prompts have `group: 'train' | 'golden'` (lifecycle). The scoring aggregation in `lib/run.mjs:1560` filters with `q.group === 'eval'`, which never matches any prompt because prompts only ever carry `train` or `golden`. Pubman's 3 eval-flagged personas (`waiter-payments`, `waiter-management`, `new-employee`) DO run — their 13 prompts live in the prompt-set as `group: "train"` — but they are pooled into the train bucket, and the eval bucket is always empty. The hold-out guarantee the design intended was never enforced. Round 10 fixes this via a two-field split: `lifecycle: train|golden` + `evaluation: fixer|holdout`.
+
+**2. The fabricated-constraint anti-pattern is structural, not incidental.** The fixer is rewarded for making tests green; adding a guard that short-circuits a retry loop is the cheapest path to green. Sonnet fabricated the occupied-table guard twice, the second time explicitly writing *"likely wrong"* in a code comment while doing so. Abstract prompt rules cannot reliably override strong pattern-matching — only evidence-based concrete checks (grep, git log, backend read) can. This warrants a dedicated audit checkpoint between fixer and merge, which Round 10 implements by upgrading the reviewer.
+
+**3. State pollution from persisted write-prompts is a design constraint, not a bug.** A "seat guest at Tisch 5" prompt running 10 times creates 10 extra guests. The emulator runs continuously. Over enough runs, prompt inputs reference an accumulating mess. The fix is to generate train prompts fresh each run from the current data state, and keep only golden prompts persistent.
+
+**4. Probe invariants can be contaminated by incorrect MCP behavior.** If probes are generated while the MCP is wrong (e.g., with a fabricated guard active), the invariants encode the wrong behavior as ground truth. Once the MCP is corrected, those invariants become false-positive failures. Run 18 shows this directly: the Tisch 5 "must be empty" invariant, generated during the guard era, now flags the correct (multi-occupancy) backend behavior as a violation. A dedicated audit mechanism is needed — or, as Round 10 handles it, the reviewer dropping contaminated prompts from scoring naturally cleans the invariant set as a side effect.
+
+### Architectural decisions — Round 10 plan
+
+The discussion after Run 18 worked through the structural issues and produced two design specs, both written and committed to `mcp-evolve/docs/superpowers/specs/`:
+
+**Spec 1 — Reviewer Audit Upgrade + Failing-Prompts Set**
+Path: `mcp-evolve/docs/superpowers/specs/2026-04-11-reviewer-audit-upgrade-design.md`
+
+The existing reviewer role (currently: merges parallel fixer diffs) is upgraded to "audit first, merge second". It gains a mandatory concrete checklist (`grep` for error text, `grep` for backend handler, read handler, `git log` for recent removals) that runs on any fixer diff adding a rejection path. It emits a structured `AUDIT` + `PROMPT_REVIEW` output with a two-orthogonal-decision case matrix: is the fix legit? is the prompt legit? Four possible outcomes (merge+keep, merge+drop, reject+keep, reject+drop).
+
+Dropped prompts are persisted to a new `.mcp-evolve/failing-prompts.json` store with two entry kinds: per-prompt (from the regular fixer) and per-pattern (from the model-error fixer). The generator receives failing entries as **anti-examples** — the LLM handles semantic avoidance rather than mechanical filter. An optional `adversarial: boolean` field on prompts supports by-design-failing test cases so the reviewer can distinguish contamination from intentional failure.
+
+The reviewer is the natural place for this because it already sees every diff before merge, runs via Claude Code CLI with Read/Grep/Edit tools (and now Bash, for git log), and is a single decision point. No new agent is added. The upgrade is Round-10 blocking — without it, further runs carry unmitigated fabrication risk.
+
+**Spec 2 — Train / Eval / Golden Redesign**
+Path: `mcp-evolve/docs/superpowers/specs/2026-04-11-train-eval-golden-redesign-design.md`
+
+A structural redesign of how mcp-evolve organises its test sets. Key changes:
+
+- **Two orthogonal fields on prompts** instead of one overloaded `group`: `lifecycle: train|golden` + `evaluation: fixer|holdout`. Personas lose their `group` field entirely.
+- **Train and holdout are ephemeral per run.** Generated fresh every run against the current emulator state. Holdout is an in-batch split (K of N per persona, default K=1, N=3) so train and holdout come from the same distribution, enabling same-run overfitting detection.
+- **Golden is the only persistent tier and the only source of cross-run comparability.** Graduation is no longer streak-based (the exact same prompt never runs twice in the new world) but instead handled by a new **Promoter-Agent** that nominates 0-3 passing train prompts per run based on capability coverage, pass quality, and distinctness from existing golden.
+- **Pre/post-fix scoring on every tier.** Replay re-runs all prompts including holdout after the fixer applies changes, so same-run overfitting is detectable: `train_post - train_pre > threshold` AND `holdout_post - holdout_pre < -threshold` emits an `overfittingDetected` alarm.
+- **Clean-slate migration.** All 25 existing train prompts and all 11 existing golden prompts are discarded. The `.mcp-evolve/prompt-set.json` is wiped (backup preserved) and starts empty on the next run. Rationale: the guard-era contamination makes the existing prompt set unreliable as a foundation.
+
+Spec 2 depends on Spec 1 (uses the reviewer's case matrix, the adversarial flag, and the failing-prompts store). The implementation order is Spec 1 → Spec 2 → Round 10 runs.
+
+### Round 10 sequencing
+
+1. Implement Spec 1 (Reviewer Audit Upgrade + Failing-Prompts Set)
+2. Implement Spec 2 (Train / Eval / Golden Redesign)
+3. Execute the clean-slate migration (`node bin/cli.mjs migrate`)
+4. Run Round 10 with:
+   - `ollama:qwen3.5:35b-a3b-coding-nvfp4` as primary answerer (same as Round 9 for continuity)
+   - 10 runs, track the new `train_pre/post`, `holdout_pre/post`, `golden_pre/post` metrics
+   - Review the `failing-prompts.json` after each run to ensure the reviewer is catching what it should
+5. After Round 10, run a separate 5-run Sonnet-as-answerer baseline for model comparison
+6. Follow-up: MCP cleanup pass (shouty error messages, fabricated constraint audit) once the architecture has proven itself
+
+### Deferred / explicitly out of scope for Round 10
+
+- Shape-based graduation (classification by persona + intent + tool signature)
+- Parametric prompt templates
+- Auto-expiry of failing-prompts entries based on error-signature removal from source
+- Semantic/embedding-based dedup
+- Shared checklist fragment between reviewer and promoter (they are distinct enough to stay separate in V1)
+- Hold-out golden (the empty fourth cell of the lifecycle × evaluation matrix)
+
+### Archive / state preservation
+
+Before any Round 10 work touches the emulator or the prompt set, the following was archived on 2026-04-11 ~20:12 CEST:
+
+- `pubmanager/.mcp-evolve/prompt-set.json.round-9-final` — snapshot of the final prompt set (36 prompts: 25 train + 11 golden)
+- `pubmanager/.mcp-evolve/archive/round-9/logs/` — full copy of all per-run JSON logs for Runs 1-18 (Round 8 + Round 9)
+- `pubmanager/.mcp-evolve/archive/round-9/timings.jsonl` — event log from all instrumented runs
+- `pubmanager/.mcp-evolve/archive/round-9/metrics.json` — the full metrics snapshot
+
+These are the evidence base for any future re-analysis of Round 8/9 in light of lessons learned. The wipe done by Spec 2's migration step does not touch the archive.
+
+---
+
+*Round 9 closed 2026-04-11 ~20:10 CEST. See specs above for the full Round 10 plan.*
