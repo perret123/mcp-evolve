@@ -5,6 +5,7 @@ import {
   aggregateScores,
   isPassingScore,
   classifyErrorCategory,
+  overfittingDetection,
 } from '../lib/eval.mjs';
 
 const CONFIG = {
@@ -111,4 +112,81 @@ test('scorePrompt treats adversarial prompts with errors as passing when no fals
     grading: { actionExpectation: 'not_action' },
   }, CONFIG);
   assert.equal(score.errorsFound, 0);
+});
+
+test('aggregateScores reads scorePre when scoreField = "scorePre"', () => {
+  const scored = [
+    {
+      scorePre:  { completed: true,  errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 2, isActionRequest: false, obsolete: false },
+      scorePost: { completed: true,  errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 3, isActionRequest: false, obsolete: false },
+      score:     { completed: true,  errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 3, isActionRequest: false, obsolete: false },
+    },
+    {
+      scorePre:  { completed: false, errorsFound: 2, stuck: false, actionRequirementMet: true, toolsUsed: 1, isActionRequest: false, obsolete: false },
+      scorePost: { completed: true,  errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 4, isActionRequest: false, obsolete: false },
+      score:     { completed: true,  errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 4, isActionRequest: false, obsolete: false },
+    },
+  ];
+  const pre = aggregateScores(scored, 'scorePre');
+  const post = aggregateScores(scored, 'scorePost');
+  assert.equal(pre.successRate, '50.0');
+  assert.equal(post.successRate, '100.0');
+});
+
+test('aggregateScores falls back to q.score when the chosen field is missing', () => {
+  const scored = [
+    {
+      score: { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 2, isActionRequest: false, obsolete: false },
+      // no scorePost
+    },
+  ];
+  const agg = aggregateScores(scored, 'scorePost');
+  assert.equal(agg.total, 1);
+  assert.equal(agg.successRate, '100.0');
+});
+
+test('overfittingDetection flags when train improves and holdout decays by more than threshold', () => {
+  const result = overfittingDetection({
+    trainPre:  { total: 6, successRate: '50.0' },
+    trainPost: { total: 6, successRate: '80.0' },
+    holdoutPre:  { total: 3, successRate: '66.6' },
+    holdoutPost: { total: 3, successRate: '33.3' },
+    threshold: 0.1,
+  });
+  assert.equal(result.detected, true);
+  assert.ok(result.trainDelta > 0.1);
+  assert.ok(result.holdoutDelta < -0.1);
+});
+
+test('overfittingDetection does NOT flag when both train and holdout improve', () => {
+  const result = overfittingDetection({
+    trainPre:  { total: 6, successRate: '50.0' },
+    trainPost: { total: 6, successRate: '80.0' },
+    holdoutPre:  { total: 3, successRate: '66.6' },
+    holdoutPost: { total: 3, successRate: '100.0' },
+    threshold: 0.1,
+  });
+  assert.equal(result.detected, false);
+});
+
+test('overfittingDetection surfaces per-persona divergences when holdout regresses and train improves', () => {
+  const goodPre = { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 1, isActionRequest: false, obsolete: false };
+  const badPre = { completed: true, errorsFound: 2, stuck: false, actionRequirementMet: true, toolsUsed: 1, isActionRequest: false, obsolete: false };
+  const perPromptPairs = [
+    { persona: 'waiter', prompt: 'seat at Tisch 5', evaluation: 'holdout', scorePre: goodPre, scorePost: badPre },
+    { persona: 'waiter', prompt: 'seat at Tisch 3', evaluation: 'fixer',   scorePre: badPre,  scorePost: goodPre },
+  ];
+  const result = overfittingDetection({
+    trainPre:  { total: 3, successRate: '33.3' },
+    trainPost: { total: 3, successRate: '66.6' },
+    holdoutPre:  { total: 1, successRate: '100.0' },
+    holdoutPost: { total: 1, successRate: '0.0' },
+    perPromptPairs,
+    threshold: 0.1,
+  });
+  assert.equal(result.detected, true);
+  assert.equal(result.divergences.length, 1);
+  assert.equal(result.divergences[0].persona, 'waiter');
+  assert.equal(result.divergences[0].holdoutRegressed.length, 1);
+  assert.equal(result.divergences[0].trainImproved.length, 1);
 });
