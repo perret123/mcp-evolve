@@ -13,19 +13,43 @@ Rules:
 
 ## Do NOT fabricate domain constraints
 
-The most dangerous anti-pattern: seeing an error and adding a **preemptive validation guard** based on assumptions about what the backend "should" allow. You often do not have enough context to know what the business logic actually permits.
+The most dangerous anti-pattern: seeing an error and adding a **preemptive validation guard** based on assumptions about what the backend "should" allow. You often do not have enough context to know what the business logic actually permits. This is a **hard prohibition** — it overrides the general goal of making tests pass.
 
-Before adding any check that REJECTS an input or BLOCKS an operation (with an `isError: true` response, throwing, or returning early with a hardcoded message), verify:
+### Mandatory self-check before adding any rejection
 
-1. **Is the constraint actually enforced by the backend?** Read the underlying handler / service / API code. If the backend accepts the input and does something meaningful with it, do NOT add a guard that rejects it in the MCP layer.
-2. **Could the input be legitimate in a scenario you haven't considered?** Examples: a resource that looks "occupied" may have capacity for more; a "completed" entity may still accept modifications; an "inactive" flag may mean something different than "unusable". Domain models have nuance.
-3. **Are you reinterpreting an error?** If a backend call fails, the correct fix is usually to **surface the backend's error more clearly** to the LLM — not to add a precondition check that reinterprets the failure.
+Before writing any of the following in the MCP layer:
+- `isError: true` with a hardcoded user-facing message
+- An early `return` that short-circuits a call to the backend
+- A `throw new Error()` with a domain-specific explanation
+- Text like "⛔", "Cannot X", "already Y", "must first Z", "not allowed"
 
-When in doubt:
-- Relax or remove incorrect rejection logic rather than adding more
-- Improve the error message from the existing failure path
-- Add a DESCRIPTION hint explaining the parameter's semantics, not a HANDLER check that blocks input
+You MUST perform ALL of these checks in order:
 
-A test passing because the LLM gets an earlier, clearer rejection is NOT a real fix if the rejection itself is wrong. It's a false positive that hides the real domain behavior from both the LLM and the user.
+1. **Search the source for the error text.** If you're about to write `"Table X is already occupied"` or similar, first run `grep -r "already occupied" src/`. If it already exists in the source, **the guard is already there** — do NOT re-implement it. The errors you see in your input are the output of THIS code. Removing them requires fixing the code, not duplicating it.
 
-If you're genuinely uncertain whether a check is correct, leave the original behavior alone and fix only the error surface (message, description, schema).
+2. **Locate the backend handler.** Find the function in the backend that actually does the work (search `services/`, `callables/`, `api/`, wherever the MCP tool dispatches to). Read it. If it does NOT reject the condition you're about to guard against, your guard is fabricated — the backend is fine with the input, and you'd be making the MCP stricter than the real system.
+
+3. **Check recent git history.** Run `git log --oneline -10 <file>` on any file you're about to edit. If you see a commit that **removed** the same guard you're considering adding, the maintainers have explicitly decided that guard is wrong. Do NOT re-add it.
+
+4. **Re-read the errors you're analyzing.** If the error texts in your input contain phrases identical to hardcoded strings in the current or recent source code, they are reflections of MCP-side validation — not real backend failures. The "fix" is to REMOVE the validation, not add more.
+
+### Examples of fabricated constraints (don't do these)
+
+- "Cannot add a product to a guest who has already paid" — unless the backend checks this, the MCP doesn't know the payment state implies immutability
+- "Cannot seat a walk-in at a table with guests" — a table may have multiple seats; this is a capacity question, not an occupancy question
+- "Cannot modify a completed transaction" — the backend may support corrections
+- "Order ID must start with 'ord_'" — unless the backend enforces this format, it's an invented constraint
+
+### The only legitimate rejection patterns
+
+You MAY add an `isError: true` return only if ANY of these hold:
+
+- **The backend just failed** and you're formatting its error more clearly for the LLM (surface, don't invent)
+- **A required parameter is missing or wrong type** that would have caused a runtime error anyway (input validation that matches the schema)
+- **You have direct evidence from reading the backend source** that the operation is forbidden — and you can cite the exact file and line
+
+If none of these apply, make a description change or an error message improvement instead. A test passing because the LLM hit an earlier clearer wall is NOT a real fix — it's a false positive that buries real behavior.
+
+### When in doubt, do nothing
+
+If you're uncertain whether a check is correct, **leave the original behavior alone** and fix only the error surface (message text, description, schema annotation). The cost of a slightly unhelpful error message is low. The cost of a fabricated business rule is high — it silently misleads every future caller of the MCP.
