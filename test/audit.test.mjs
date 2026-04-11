@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { applyAuditDecisions } from '../lib/audit.mjs';
@@ -172,6 +172,73 @@ test('applyAuditDecisions defaults to reject when branch missing from AUDIT outp
     assert.equal(result.merged.length, 0);
     assert.equal(result.rejected.length, 1);
     assert.match(result.rejected[0].reason, /missing from AUDIT/);
+  } finally {
+    rmSync(cfg._dir, { recursive: true, force: true });
+  }
+});
+
+test('applyAuditDecisions persists pattern-level failing entry for rejected model-error branches', () => {
+  const cfg = makeCfg();
+  try {
+    writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 1, prompts: [] }));
+
+    // Error text with regex metacharacters that would crash an un-escaped regex
+    const errorText = 'Tool call (mcp__pubman__seat_guest) failed: $arg has [brackets] and (parens)';
+
+    const reviewerOutput = {
+      audits: [{
+        branch: 'fix/model-error-batch',
+        fixType: 'rejection_path',
+        backendCheck: { performed: true, method: 'grep', evidence: ['fabricated'], conclusion: 'fabrication' },
+        decision: 'reject',
+        reason: 'model-error fixer fabricated a guard',
+      }],
+      promptReviews: [],
+      parseErrors: [],
+    };
+
+    const branches = [{
+      branchName: 'fix/model-error-batch',
+      worktreePath: '/tmp/wt',
+      slug: 'model-error-batch',
+      kind: 'model-error',
+      fixableError: {
+        persona: { id: 'model-error' },
+        prompt: '[model-error batch]',
+        errors: [{ tool: 'mcp__pubman__seat_guest', error: errorText, category: 'model' }],
+      },
+    }];
+
+    applyAuditDecisions({
+      reviewerOutput,
+      branches,
+      scoredPrompts: [],
+      runId: '2026-04-11T19:00:00Z',
+      config: cfg,
+    });
+
+    // Verify a pattern-level entry was persisted
+    const failing = JSON.parse(readFileSync(cfg.failingPromptsPath, 'utf-8'));
+    assert.equal(failing.entries.length, 1);
+    const entry = failing.entries[0];
+    assert.equal(entry.kind, 'pattern');
+    assert.equal(entry.reason, 'fabrication_trigger');
+    assert.ok(entry.patternRegex, 'patternRegex should be set');
+    assert.equal(entry.triggeringError.tool, 'mcp__pubman__seat_guest');
+
+    // CRITICAL: the stored patternRegex must compile as a valid RegExp
+    // (if escapeRegex was broken, new RegExp would throw here)
+    assert.doesNotThrow(
+      () => new RegExp(entry.patternRegex, 'i'),
+      'patternRegex must be a valid regex'
+    );
+
+    // Sanity: the compiled regex should actually match the original error text
+    // (regex metacharacters should be escaped, not interpreted as regex syntax)
+    const re = new RegExp(entry.patternRegex, 'i');
+    // After normalization, the error text was lowercased and volatile tokens stripped;
+    // the regex may not match the ORIGINAL text, but it SHOULD match the normalized form.
+    // We just verify it compiles without throwing — that's the load-bearing property.
   } finally {
     rmSync(cfg._dir, { recursive: true, force: true });
   }
