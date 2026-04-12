@@ -6,7 +6,12 @@ import {
   isPassingScore,
   classifyErrorCategory,
   overfittingDetection,
+  saveBaseline,
+  loadBaseline,
 } from '../lib/eval.mjs';
+import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const CONFIG = {
   writeTools: ['update_task', 'create_task', 'delete_task'],
@@ -189,4 +194,64 @@ test('overfittingDetection surfaces per-persona divergences when holdout regress
   assert.equal(result.divergences[0].persona, 'waiter');
   assert.equal(result.divergences[0].holdoutRegressed.length, 1);
   assert.equal(result.divergences[0].trainImproved.length, 1);
+});
+
+test('saveBaseline writes version: 2 with scorePre and scorePost per prompt', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'baseline-'));
+  try {
+    const config = { baselinesDir: dir };
+    const pre = { completed: false, errorsFound: 2, stuck: false, actionRequirementMet: true, toolsUsed: 1, isActionRequest: false, obsolete: false };
+    const post = { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 2, isActionRequest: false, obsolete: false };
+    const results = [{
+      persona: { id: 'p1' },
+      prompts: [{
+        prompt: 'seat at Tisch 5',
+        promptObj: { lifecycle: 'train', evaluation: 'fixer', probe: 'x', invariant: 'y' },
+        scorePre: pre,
+        scorePost: post,
+        score: post,
+      }],
+    }];
+    const path = saveBaseline(results, 'sonnet', config);
+    const loaded = JSON.parse(readFileSync(path, 'utf-8'));
+    assert.equal(loaded.version, 2);
+    assert.equal(loaded.prompts.length, 1);
+    assert.equal(loaded.prompts[0].lifecycle, 'train');
+    assert.equal(loaded.prompts[0].evaluation, 'fixer');
+    assert.deepEqual(loaded.prompts[0].scorePre, pre);
+    assert.deepEqual(loaded.prompts[0].scorePost, post);
+    // `score` alias stays for legacy consumers
+    assert.deepEqual(loaded.prompts[0].score, post);
+    // `group` field must be gone
+    assert.equal('group' in loaded.prompts[0], false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('loadBaseline normalizes v1 baselines (score only) into scorePost form', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'baseline-v1-'));
+  try {
+    const v1 = {
+      timestamp: '2026-04-01T00:00:00Z',
+      answererModel: 'sonnet',
+      prompts: [{
+        persona: 'p1',
+        group: 'train',
+        prompt: 'old prompt',
+        score: { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 1, isActionRequest: false, obsolete: false },
+      }],
+    };
+    const file = join(dir, 'baseline-2026-04-01-00-00-00.json');
+    writeFileSync(file, JSON.stringify(v1));
+    const cfg = { baselinesDir: dir };
+    const loaded = loadBaseline(file, cfg);
+    assert.equal(loaded.version, 2);
+    assert.equal(loaded.prompts[0].scorePost.completed, true);
+    assert.equal(loaded.prompts[0].scorePre, null);
+    // lifecycle is synthesized from the legacy `group` field during normalization
+    assert.equal(loaded.prompts[0].lifecycle, 'train');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
