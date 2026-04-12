@@ -37,7 +37,7 @@ test('applyPromoterDecisions appends nominated candidates to prompt-set as golde
       },
     ];
 
-    const reviewerOutput = {
+    const promoterOutput = {
       nominations: [{
         promptId: 'waiter::seat a walk-in at Tisch 3',
         capabilityTag: 'walk-in-seating',
@@ -49,7 +49,7 @@ test('applyPromoterDecisions appends nominated candidates to prompt-set as golde
     };
 
     const result = applyPromoterDecisions({
-      reviewerOutput, candidates, config: cfg, runId: '2026-04-11T20:00:00Z',
+      promoterOutput, candidates, config: cfg, runId: '2026-04-11T20:00:00Z',
     });
 
     assert.equal(result.nominated.length, 1);
@@ -85,7 +85,7 @@ test('applyPromoterDecisions caps nominations at maxPromotionsPerRun', () => {
       scorePost: { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 1, isActionRequest: false, obsolete: false },
     });
     const candidates = [mk(1), mk(2), mk(3), mk(4)];
-    const reviewerOutput = {
+    const promoterOutput = {
       nominations: candidates.map((c, i) => ({
         promptId: `p::candidate-${i + 1}`,
         capabilityTag: `tag-${i}`,
@@ -95,10 +95,34 @@ test('applyPromoterDecisions caps nominations at maxPromotionsPerRun', () => {
       skipped: [],
       parseErrors: [],
     };
-    const result = applyPromoterDecisions({ reviewerOutput, candidates, config: cfg, runId: 'r' });
+    const result = applyPromoterDecisions({ promoterOutput, candidates, config: cfg, runId: 'r' });
     assert.equal(result.nominated.length, 2);
     const ps = JSON.parse(readFileSync(cfg.promptSetPath, 'utf-8'));
     assert.equal(ps.prompts.length, 2);
+  } finally {
+    rmSync(cfg._dir, { recursive: true, force: true });
+  }
+});
+
+test('applyPromoterDecisions with maxPromotionsPerRun=0 nominates zero', () => {
+  const cfg = makeCfg();
+  cfg.maxPromotionsPerRun = 0;
+  try {
+    writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 2, prompts: [] }));
+    const candidates = [{
+      persona: 'p',
+      prompt: 'candidate-1',
+      promptObj: { prompt: 'candidate-1', probe: 'p', invariant: 'i', probeType: 'read', adversarial: false, lifecycle: 'train', evaluation: 'fixer' },
+      scorePost: { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 1, isActionRequest: false, obsolete: false },
+    }];
+    const promoterOutput = {
+      nominations: [{ promptId: 'p::candidate-1', capabilityTag: 't', confidence: 'high', reason: 'r' }],
+      skipped: [], parseErrors: [],
+    };
+    const result = applyPromoterDecisions({ promoterOutput, candidates, config: cfg, runId: 'r' });
+    assert.equal(result.nominated.length, 0);
+    const ps = JSON.parse(readFileSync(cfg.promptSetPath, 'utf-8'));
+    assert.equal(ps.prompts.length, 0);
   } finally {
     rmSync(cfg._dir, { recursive: true, force: true });
   }
@@ -108,7 +132,7 @@ test('applyPromoterDecisions skips candidates not present in the input list', ()
   const cfg = makeCfg();
   try {
     writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 2, prompts: [] }));
-    const reviewerOutput = {
+    const promoterOutput = {
       nominations: [{
         promptId: 'ghost::nonexistent prompt',
         capabilityTag: 'tag', confidence: 'high', reason: 'r',
@@ -117,7 +141,7 @@ test('applyPromoterDecisions skips candidates not present in the input list', ()
       parseErrors: [],
     };
     const result = applyPromoterDecisions({
-      reviewerOutput, candidates: [], config: cfg, runId: 'r',
+      promoterOutput, candidates: [], config: cfg, runId: 'r',
     });
     assert.equal(result.nominated.length, 0);
     assert.equal(result.unmatched.length, 1);
@@ -146,11 +170,11 @@ test('applyPromoterDecisions does not duplicate an already-golden prompt', () =>
       promptObj: { prompt: 'existing prompt', probe: 'x', invariant: 'y', adversarial: false, lifecycle: 'train', evaluation: 'fixer' },
       scorePost: { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 1, isActionRequest: false, obsolete: false },
     }];
-    const reviewerOutput = {
+    const promoterOutput = {
       nominations: [{ promptId: 'p::existing prompt', capabilityTag: 't', confidence: 'high', reason: 'r' }],
       skipped: [], parseErrors: [],
     };
-    const result = applyPromoterDecisions({ reviewerOutput, candidates, config: cfg, runId: 'r' });
+    const result = applyPromoterDecisions({ promoterOutput, candidates, config: cfg, runId: 'r' });
     assert.equal(result.nominated.length, 0);
     assert.equal(result.duplicates.length, 1);
     const ps = JSON.parse(readFileSync(cfg.promptSetPath, 'utf-8'));
@@ -171,11 +195,11 @@ test('applyPromoterDecisions creates prompt-set file when missing', () => {
       promptObj: { prompt: 'new golden', probe: 'p', invariant: 'i', probeType: 'read', adversarial: false, lifecycle: 'train', evaluation: 'fixer' },
       scorePost: { completed: true, errorsFound: 0, stuck: false, actionRequirementMet: true, toolsUsed: 1, isActionRequest: false, obsolete: false },
     }];
-    const reviewerOutput = {
+    const promoterOutput = {
       nominations: [{ promptId: 'p::new golden', capabilityTag: 't', confidence: 'high', reason: 'r' }],
       skipped: [], parseErrors: [],
     };
-    applyPromoterDecisions({ reviewerOutput, candidates, config: cfg, runId: 'r' });
+    applyPromoterDecisions({ promoterOutput, candidates, config: cfg, runId: 'r' });
     const ps = JSON.parse(readFileSync(cfg.promptSetPath, 'utf-8'));
     assert.equal(ps.version, 2);
     assert.equal(ps.prompts.length, 1);
