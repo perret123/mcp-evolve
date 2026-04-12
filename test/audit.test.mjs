@@ -17,11 +17,11 @@ function makeCfg() {
 test('applyAuditDecisions marks prompts invalid and persists failing entries', () => {
   const cfg = makeCfg();
   try {
-    writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 1, prompts: [] }));
+    writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 2, prompts: [] }));
 
     const scoredPrompts = [
-      { prompt: 'seat a walk-in at Tisch 5', persona: 'waiter-orders', group: 'train', score: { errorsFound: 2 } },
-      { prompt: 'list orders', persona: 'waiter-orders', group: 'train', score: { errorsFound: 0 } },
+      { prompt: 'seat a walk-in at Tisch 5', persona: 'waiter-orders', lifecycle: 'train', evaluation: 'fixer', score: { errorsFound: 2 } },
+      { prompt: 'list orders', persona: 'waiter-orders', lifecycle: 'train', evaluation: 'fixer', score: { errorsFound: 0 } },
     ];
 
     const reviewerOutput = {
@@ -81,15 +81,15 @@ test('applyAuditDecisions removes golden prompt from prompt-set.json when droppe
   const cfg = makeCfg();
   try {
     writeFileSync(cfg.promptSetPath, JSON.stringify({
-      version: 1,
+      version: 2,
       prompts: [
-        { persona: 'waiter-orders', prompt: 'seat a walk-in at Tisch 5', group: 'golden', consecutivePasses: 5 },
-        { persona: 'waiter-orders', prompt: 'list orders', group: 'golden', consecutivePasses: 3 },
+        { persona: 'waiter-orders', prompt: 'seat a walk-in at Tisch 5', lifecycle: 'golden', evaluation: 'fixer', consecutivePasses: 5 },
+        { persona: 'waiter-orders', prompt: 'list orders', lifecycle: 'golden', evaluation: 'fixer', consecutivePasses: 3 },
       ],
     }));
 
     const scoredPrompts = [
-      { prompt: 'seat a walk-in at Tisch 5', persona: 'waiter-orders', group: 'golden', score: { errorsFound: 1 } },
+      { prompt: 'seat a walk-in at Tisch 5', persona: 'waiter-orders', lifecycle: 'golden', evaluation: 'fixer', score: { errorsFound: 1 } },
     ];
 
     const reviewerOutput = {
@@ -123,7 +123,7 @@ test('applyAuditDecisions removes golden prompt from prompt-set.json when droppe
 test('applyAuditDecisions counts merged and rejected branches', () => {
   const cfg = makeCfg();
   try {
-    writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 1, prompts: [] }));
+    writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 2, prompts: [] }));
 
     const reviewerOutput = {
       audits: [
@@ -155,7 +155,7 @@ test('applyAuditDecisions counts merged and rejected branches', () => {
 test('applyAuditDecisions defaults to reject when branch missing from AUDIT output', () => {
   const cfg = makeCfg();
   try {
-    writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 1, prompts: [] }));
+    writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 2, prompts: [] }));
 
     const branches = [
       { branchName: 'missing-from-audit', worktreePath: '/tmp/x', slug: 'x', fixableError: { persona: { id: 'p' }, prompt: 'p', errors: [] } },
@@ -180,7 +180,7 @@ test('applyAuditDecisions defaults to reject when branch missing from AUDIT outp
 test('applyAuditDecisions persists pattern-level failing entry for rejected model-error branches', () => {
   const cfg = makeCfg();
   try {
-    writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 1, prompts: [] }));
+    writeFileSync(cfg.promptSetPath, JSON.stringify({ version: 2, prompts: [] }));
 
     // Error text with regex metacharacters that would crash an un-escaped regex
     const errorText = 'Tool call (mcp__pubman__seat_guest) failed: $arg has [brackets] and (parens)';

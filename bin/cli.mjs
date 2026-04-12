@@ -11,8 +11,6 @@
  *   mcp-evolve --limit 2             # 2 questions per persona
  *   mcp-evolve --dry-run             # Generate questions only
  *   mcp-evolve --skip-fixer          # Skip fixer step
- *   mcp-evolve --train               # Train personas only
- *   mcp-evolve --eval                # Eval personas only (hold-out)
  *   mcp-evolve --escalate            # Force escalation
  *   mcp-evolve --regression          # Replay baseline, compare scores
  */
@@ -24,7 +22,7 @@ import { run } from '../lib/run.mjs';
 import { scaffoldInit, fullInit } from '../lib/init.mjs';
 import { printPersonaMap } from '../lib/personas.mjs';
 import { getFullSummary, loadMetrics, getStalePersonas, getSuccessRateTrend } from '../lib/metrics.mjs';
-import { loadGoldenSet, loadPromptSet, getPromptsByGroup, checkStreak } from '../lib/eval.mjs';
+import { loadPromptSet, checkStreak } from '../lib/eval.mjs';
 
 const { values: args, positionals } = parseArgs({
   options: {
@@ -32,8 +30,6 @@ const { values: args, positionals } = parseArgs({
     limit: { type: 'string', short: 'l' },
     'dry-run': { type: 'boolean' },
     'skip-fixer': { type: 'boolean' },
-    train: { type: 'boolean' },
-    eval: { type: 'boolean' },
     'answerer-model': { type: 'string' },
     regression: { type: 'boolean' },
     'regression-file': { type: 'string' },
@@ -79,8 +75,6 @@ Options:
   -l, --limit <n>        Prompts per persona (default: from config)
   --dry-run              Generate prompts only, don't run
   --skip-fixer           Skip auto-fix step
-  --train                Train personas only
-  --eval                 Eval personas only (hold-out, no fixer)
   --escalate             Force escalation
   --no-escalate          Disable auto-escalation
   --regression           Replay baseline prompts
@@ -154,19 +148,15 @@ if (command === 'status') {
 
     const ps = loadPromptSet(config);
     if (ps) {
-      const train = getPromptsByGroup(ps, 'train');
-      const golden = getPromptsByGroup(ps, 'golden');
-      console.log(`\nPrompt set: ${ps.prompts.length} total (${train.length} train, ${golden.length} golden)`);
-      for (const q of ps.prompts) {
-        const badge = q.group === 'golden' ? '[golden]' : `[train ${q.consecutivePasses || 0}/${config.graduationStreak || 10}]`;
-        console.log(`  ${badge} [${q.persona}] ${q.prompt.slice(0, 70)}`);
+      const golden = ps.prompts.filter(q => q.lifecycle === 'golden');
+      console.log(`\nPrompt set: ${ps.prompts.length} persisted (${golden.length} golden, train+holdout generated fresh per run)`);
+      for (const q of golden) {
+        const tag = q.promoterEvidence?.capabilityTag || '(untagged)';
+        const passes = q.consecutivePasses || 0;
+        console.log(`  [golden x${passes}] [${q.persona}] ${tag}: ${q.prompt.slice(0, 60)}`);
       }
     } else {
-      const gs = loadGoldenSet(config);
-      console.log(`\nGolden set (legacy): ${gs.prompts.length} prompts`);
-      for (const q of gs.prompts) {
-        console.log(`  [${q.persona}] ${q.prompt.slice(0, 80)}`);
-      }
+      console.log('\nNo prompt-set.json found. Run `node bin/cli.mjs init -c <config>` to scaffold.');
     }
 
     const stale = getStalePersonas(config, 3);
@@ -249,8 +239,6 @@ await run(config, {
   promptLimit: args.limit ? parseInt(args.limit, 10) : undefined,
   dryRun: args['dry-run'],
   skipFixer: args['skip-fixer'],
-  trainOnly: args.train,
-  evalOnly: args.eval,
   answererModel: args['answerer-model'],
   isRegression: args.regression,
   regressionFile: args['regression-file'],
