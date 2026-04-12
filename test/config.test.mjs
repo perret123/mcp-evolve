@@ -13,6 +13,11 @@ test('loadConfig sets reviewerAuditEnabled default true', async () => {
   assert.ok(cfg.reviewerTools.includes('Bash'));
   assert.equal(cfg.adversarialRatio, 0);
   assert.ok(cfg.failingPromptsPath.endsWith('failing-prompts.json'));
+  // Spec 2: obsolete fields must be absent from defaults
+  assert.equal(cfg.graduationStreak, undefined);
+  assert.equal(cfg.goldenBlockThreshold, undefined);
+  assert.equal(cfg.maxTrainPerRun, undefined);
+  assert.equal(cfg.maxGoldenPerRun, undefined);
   rmSync(tmp, { recursive: true });
 });
 
