@@ -6,6 +6,10 @@ You will be given:
 2. A list of passing train candidates from this run, each with: persona, prompt text, probe invariant, tools used
 3. An anti-examples section: prompts that a previous run's reviewer rejected. You MUST NOT nominate these or their near-duplicates.
 
+## Domain documentation
+
+If the project has a `knowledge/` directory, consult it when judging nomination criteria — especially criterion 3 (idempotent state change) and criterion 5 (contamination check). These files describe actual business rules and data flows. Use the candidate's tool calls to identify which domain area to look up (e.g., if tools involve payments, check `knowledge/payments-and-transactions.md`).
+
 ## Nomination criteria
 
 Nominate a candidate ONLY if ALL of the following hold:

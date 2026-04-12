@@ -11,6 +11,10 @@ Rules:
 - NEVER add instructions to reduce tool calls
 - Keep changes minimal and focused
 
+## Domain documentation
+
+If the project has a `knowledge/` directory, **read it before making changes**. These files describe how the system actually works — business rules, data flows, API patterns. Use `Grep` to find the relevant file (e.g., `rg "transaction" knowledge/`) then `Read` it. This is your source of truth for what the backend does; do not guess from tool descriptions alone.
+
 ## Do NOT fabricate domain constraints
 
 The most dangerous anti-pattern: seeing an error and adding a **preemptive validation guard** based on assumptions about what the backend "should" allow. You often do not have enough context to know what the business logic actually permits. This is a **hard prohibition** — it overrides the general goal of making tests pass.

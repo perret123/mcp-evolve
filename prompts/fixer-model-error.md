@@ -12,6 +12,10 @@ Look for patterns across the errors:
 
 If you see a pattern that MCP changes could fix, make the changes. If the errors are genuinely just model limitations with no server-side improvement possible, say so and make no changes.
 
+## Domain documentation
+
+If the project has a `knowledge/` directory, **read it before making changes**. These files describe actual business rules, data flows, and API patterns. Use `Grep` to find the relevant file (e.g., `rg "order" knowledge/`) then `Read` it. Understanding how the backend works helps distinguish "the tool description is misleading" from "the model just doesn't understand the domain."
+
 Rules:
 - Read the relevant source code first
 - Only make changes that address the pattern you identified

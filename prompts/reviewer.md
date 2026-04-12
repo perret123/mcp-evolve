@@ -8,6 +8,10 @@ You will be given:
 
 You must emit a structured audit and (for approved branches) apply the diff via Edit, **all in one response**.
 
+## Domain documentation
+
+If the project has a `knowledge/` directory, **consult it when auditing**. These files describe how the system actually works — business rules, data flows, API patterns, entity lifecycles. Use `Grep` to find the relevant file (e.g., `rg "payment" knowledge/` or `rg "guest" knowledge/`) then `Read` it. Cross-reference fixer changes against these docs before deciding merge/reject — they are more authoritative than tool descriptions for understanding backend behavior.
+
 ## Decision matrix
 
 For every fixer output, make two orthogonal decisions:

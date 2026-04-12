@@ -8,6 +8,10 @@ Rules:
 - Do NOT mention MCP, tools, or technical implementation — write as a real user would speak
 - If the harness provides a run date context, treat it as canonical for any date-based wording
 
+## Domain knowledge
+
+If the system description or prefetch data references domain concepts you're unsure about, the project may have a `knowledge/` directory with documentation on business rules, entity lifecycles, and workflows. The harness may inject relevant excerpts in the context below.
+
 Prompt variety — each prompt should feel different. Mix these types:
 - **Direct lookups**: straightforward data retrieval
 - **Actions**: creating, updating, deleting, or mutating things
