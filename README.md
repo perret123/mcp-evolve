@@ -319,6 +319,19 @@ mcp-evolve was born from testing a restaurant POS MCP server. Key discoveries:
 
 7. **Don't reset if you don't need to.** Evolving data is fine — obsolete prompts get replaced, probes are relative.
 
+### Migration from Spec 1 (v1 prompt-set) to Spec 2 (v2 empty-golden)
+
+Spec 2 redesigns the train/eval/golden structure. `prompt-set.json` now only persists **golden** prompts — train and holdout are generated fresh every run. The file schema is `{version: 2, prompts: [...]}`; entries gained `lifecycle: "golden"`, `evaluation: "fixer"`, `promoterEvidence`, and `promotedAt` fields, and lost `group`, `graduatedAt`, and `consecutivePasses`-as-streak-trigger.
+
+To migrate a v1 project (including `examples/task-manager/`):
+
+    rm .mcp-evolve/prompt-set.json
+    node bin/cli.mjs init -c evolve.config.mjs
+
+The load path refuses to start a run if it sees a v1 prompt-set (any prompt lacking `lifecycle`). The archive / git history is the backup — no backup file is written by the migration code.
+
+Spec 2 also deletes the `--train` and `--eval` CLI flags (they were tied to the removed `persona.group` field) and adds a new Promoter-Agent that nominates passing train prompts for graduation to golden.
+
 ## Prerequisites
 
 - [Claude Code CLI](https://claude.ai/code) installed (`claude` command available)
